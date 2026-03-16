@@ -1,0 +1,67 @@
+.drivers-page {
+  padding: 60px 0 100px;
+}
+
+.drivers-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.drivers-header h2 {
+  font-size: 42px;
+  margin-bottom: 12px;
+}
+
+.drivers-header p {
+  color: #bbb;
+  font-size: 18px;
+}
+
+.drivers-message {
+  text-align: center;
+  color: #bbb;
+  font-size: 18px;
+}
+
+.drivers-message.error {
+  color: #ff4d4d;
+}
+
+.drivers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 24px;
+}
+
+.driver-card {
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 12px;
+  padding: 22px;
+  transition: 0.2s ease;
+  position: relative;
+}
+
+.driver-card:hover {
+  transform: translateY(-4px);
+  border-color: #ff0000;
+}
+
+.driver-top-line {
+  height: 4px;
+  width: 100%;
+  background: red;
+  border-radius: 6px;
+  margin-bottom: 18px;
+}
+
+.driver-card h3 {
+  font-size: 24px;
+  margin-bottom: 14px;
+}
+
+.driver-card p {
+  color: #d0d0d0;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
