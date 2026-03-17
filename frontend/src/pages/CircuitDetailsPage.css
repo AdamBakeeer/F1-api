@@ -1,0 +1,104 @@
+.circuit-details-page {
+  padding: 50px 0 100px;
+}
+
+.circuit-details-message {
+  text-align: center;
+  color: #bbb;
+  font-size: 18px;
+}
+
+.circuit-details-message.error {
+  color: #ff4d4d;
+}
+
+.circuit-profile-card {
+  background: linear-gradient(135deg, #101010, #161616);
+  border: 1px solid #262626;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 40px;
+}
+
+.circuit-profile-top-line {
+  height: 4px;
+  width: 100%;
+  background: #4fd1c5;
+  border-radius: 6px;
+  margin-bottom: 18px;
+}
+
+.circuit-profile-card h2 {
+  font-size: 34px;
+  margin-bottom: 16px;
+}
+
+.circuit-profile-card p {
+  color: #d0d0d0;
+  margin-bottom: 8px;
+}
+
+.circuit-stats-section,
+.circuit-table-section {
+  margin-bottom: 45px;
+}
+
+.circuit-stats-section h3,
+.circuit-table-section h3 {
+  font-size: 28px;
+  margin-bottom: 18px;
+}
+
+.circuit-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 18px;
+}
+
+.circuit-stat-box {
+  background: linear-gradient(180deg, #121212, #0f0f0f);
+  border: 1px solid #222;
+  border-top: 4px solid #4fd1c5;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.circuit-stat-box span {
+  display: block;
+  color: #aaa;
+  margin-bottom: 10px;
+}
+
+.circuit-stat-box strong {
+  font-size: 24px;
+  color: white;
+}
+
+.circuit-table-wrapper {
+  overflow-x: auto;
+}
+
+.circuit-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.circuit-table th,
+.circuit-table td {
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid #222;
+}
+
+.circuit-table th {
+  background: #181818;
+  color: white;
+}
+
+.circuit-table td {
+  color: #ddd;
+}

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+import re
 
 from app.db.database import get_db
 from app.core.deps import require_admin
@@ -36,14 +37,16 @@ class CircuitUpdate(BaseModel):
 # ---------------------------------------------------------
 # Helper functions
 # ---------------------------------------------------------
-def ensure_circuit_exists(circuit_id: int, db: Session) -> None:
-    row = db.execute(
-        text("SELECT 1 FROM circuits WHERE circuit_id = :circuit_id LIMIT 1"),
-        {"circuit_id": circuit_id},
-    ).fetchone()
+def slugify_circuit_name(name: str) -> str:
+    value = name.strip().lower()
+    value = re.sub(r"[^a-z0-9\s-]", "", value)
+    value = re.sub(r"\s+", "-", value)
+    return value
 
-    if row is None:
-        raise HTTPException(status_code=404, detail="Circuit not found")
+
+def add_circuit_slug(row_dict: dict) -> dict:
+    row_dict["circuit_slug"] = slugify_circuit_name(row_dict.get("name", ""))
+    return row_dict
 
 
 def ensure_season_exists(year: int, db: Session) -> None:
@@ -56,6 +59,28 @@ def ensure_season_exists(year: int, db: Session) -> None:
         raise HTTPException(status_code=404, detail="Season not found")
 
 
+def get_circuit_row_by_slug_or_404(circuit_slug: str, db: Session):
+    rows = db.execute(
+        text("""
+            SELECT circuit_id, name, location, country, lat, lng, alt
+            FROM circuits
+            ORDER BY circuit_id
+        """)
+    ).fetchall()
+
+    for row in rows:
+        row_dict = dict(row._mapping)
+        if slugify_circuit_name(row_dict["name"]) == circuit_slug.lower():
+            return row
+
+    raise HTTPException(status_code=404, detail="Circuit not found")
+
+
+def get_circuit_id_by_slug(circuit_slug: str, db: Session) -> int:
+    row = get_circuit_row_by_slug_or_404(circuit_slug, db)
+    return row._mapping["circuit_id"]
+
+
 # ---------------------------------------------------------
 # 1️⃣ GET /circuits
 # Returns all circuits with optional filtering
@@ -66,28 +91,42 @@ def list_circuits(
     offset: int = Query(0, ge=0),
     country: str | None = None,
     q: str | None = None,
+    season: int | None = Query(None, ge=1950),
     db: Session = Depends(get_db),
 ):
     """
     Retrieve all circuits.
 
     Optional:
-    - limit / offset for pagination
+    - limit / offset
     - country filter
-    - q search by circuit name or location
+    - q search by name/location/country
+    - season filter
     """
 
+    if season is not None:
+        ensure_season_exists(season, db)
+
     sql = """
-    SELECT circuit_id, name, location, country, lat, lng, alt
-    FROM circuits
-    WHERE (:country IS NULL OR country ILIKE :country_like)
+    SELECT DISTINCT
+        c.circuit_id,
+        c.name,
+        c.location,
+        c.country,
+        c.lat,
+        c.lng,
+        c.alt
+    FROM circuits c
+    LEFT JOIN races r ON r.circuit_id = c.circuit_id
+    WHERE (:country IS NULL OR c.country ILIKE :country_like)
       AND (
             :q IS NULL
-            OR name ILIKE :q_like
-            OR location ILIKE :q_like
-            OR country ILIKE :q_like
+            OR c.name ILIKE :q_like
+            OR c.location ILIKE :q_like
+            OR c.country ILIKE :q_like
           )
-    ORDER BY name
+      AND (:season IS NULL OR r.year = :season)
+    ORDER BY c.name
     LIMIT :limit OFFSET :offset;
     """
 
@@ -100,14 +139,22 @@ def list_circuits(
             "country_like": f"%{country}%" if country else None,
             "q": q,
             "q_like": f"%{q}%" if q else None,
+            "season": season,
         },
     ).fetchall()
+
+    data = [add_circuit_slug(dict(row._mapping)) for row in rows]
 
     return {
         "limit": limit,
         "offset": offset,
-        "count": len(rows),
-        "data": [dict(row._mapping) for row in rows],
+        "count": len(data),
+        "filters": {
+            "country": country,
+            "q": q,
+            "season": season,
+        },
+        "data": data,
     }
 
 
@@ -121,11 +168,6 @@ def create_circuit(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    """
-    Create a new circuit.
-    Admin only.
-    """
-
     new_circuit_id = db.execute(
         text("SELECT COALESCE(MAX(circuit_id), 0) + 1 AS next_id FROM circuits")
     ).scalar()
@@ -149,9 +191,11 @@ def create_circuit(
 
     db.commit()
 
+    data = add_circuit_slug(dict(row._mapping))
+
     return {
         "message": "Circuit created successfully",
-        "data": dict(row._mapping),
+        "data": data,
     }
 
 
@@ -161,29 +205,33 @@ def create_circuit(
 # ---------------------------------------------------------
 @router.get("/current")
 def current_circuits(db: Session = Depends(get_db)):
-    """
-    Retrieve circuits used in the most recent season.
-    """
-
     latest_year = db.execute(text("SELECT MAX(year) FROM races")).scalar()
 
     if latest_year is None:
         raise HTTPException(status_code=404, detail="No seasons found")
 
     sql = """
-    SELECT DISTINCT c.circuit_id, c.name, c.location, c.country, c.lat, c.lng, c.alt
+    SELECT DISTINCT
+        c.circuit_id,
+        c.name,
+        c.location,
+        c.country,
+        c.lat,
+        c.lng,
+        c.alt
     FROM races r
     JOIN circuits c ON c.circuit_id = r.circuit_id
     WHERE r.year = :year
-    ORDER BY r.round;
+    ORDER BY c.name;
     """
 
     rows = db.execute(text(sql), {"year": latest_year}).fetchall()
+    data = [add_circuit_slug(dict(row._mapping)) for row in rows]
 
     return {
         "season": latest_year,
-        "count": len(rows),
-        "data": [dict(row._mapping) for row in rows],
+        "count": len(data),
+        "data": data,
     }
 
 
@@ -193,47 +241,60 @@ def current_circuits(db: Session = Depends(get_db)):
 # ---------------------------------------------------------
 @router.get("/season/{year}")
 def circuits_by_season(year: int, db: Session = Depends(get_db)):
-    """
-    Retrieve circuits used in a specific season.
-    """
-
     ensure_season_exists(year, db)
 
     sql = """
-    SELECT DISTINCT c.circuit_id, c.name, c.location, c.country, c.lat, c.lng, c.alt
+    SELECT DISTINCT
+        c.circuit_id,
+        c.name,
+        c.location,
+        c.country,
+        c.lat,
+        c.lng,
+        c.alt
     FROM races r
     JOIN circuits c ON c.circuit_id = r.circuit_id
     WHERE r.year = :year
-    ORDER BY r.round;
+    ORDER BY c.name;
     """
 
     rows = db.execute(text(sql), {"year": year}).fetchall()
+    data = [add_circuit_slug(dict(row._mapping)) for row in rows]
 
     return {
         "season": year,
-        "count": len(rows),
-        "data": [dict(row._mapping) for row in rows],
+        "count": len(data),
+        "data": data,
     }
 
 
 # ---------------------------------------------------------
-# 5️⃣ GET /circuits/{circuit_id}/stats
+# 5️⃣ GET /circuits/{circuit_slug}
+# Returns a single circuit by slug
+# ---------------------------------------------------------
+@router.get("/{circuit_slug}")
+def get_circuit(circuit_slug: str, db: Session = Depends(get_db)):
+    row = get_circuit_row_by_slug_or_404(circuit_slug, db)
+    return add_circuit_slug(dict(row._mapping))
+
+
+# ---------------------------------------------------------
+# 6️⃣ GET /circuits/{circuit_slug}/stats
 # Summary statistics for a circuit
 # ---------------------------------------------------------
-@router.get("/{circuit_id}/stats")
-def circuit_stats(circuit_id: int, db: Session = Depends(get_db)):
-    """
-    Retrieve summary statistics for a circuit.
-    """
-
-    ensure_circuit_exists(circuit_id, db)
+@router.get("/{circuit_slug}/stats")
+def circuit_stats(circuit_slug: str, db: Session = Depends(get_db)):
+    circuit_id = get_circuit_id_by_slug(circuit_slug, db)
 
     sql = """
     SELECT
         c.circuit_id,
-        c.name AS circuit_name,
+        c.name,
         c.location,
         c.country,
+        c.lat,
+        c.lng,
+        c.alt,
         COUNT(DISTINCT r.race_id) AS races_hosted,
         MIN(r.year) AS first_season,
         MAX(r.year) AS last_season,
@@ -245,7 +306,7 @@ def circuit_stats(circuit_id: int, db: Session = Depends(get_db)):
     LEFT JOIN races r ON r.circuit_id = c.circuit_id
     LEFT JOIN results res ON res.race_id = r.race_id
     WHERE c.circuit_id = :circuit_id
-    GROUP BY c.circuit_id, c.name, c.location, c.country;
+    GROUP BY c.circuit_id, c.name, c.location, c.country, c.lat, c.lng, c.alt;
     """
 
     row = db.execute(text(sql), {"circuit_id": circuit_id}).fetchone()
@@ -253,27 +314,20 @@ def circuit_stats(circuit_id: int, db: Session = Depends(get_db)):
     if row is None:
         raise HTTPException(status_code=404, detail="Circuit stats not found")
 
-    return dict(row._mapping)
+    return add_circuit_slug(dict(row._mapping))
 
 
 # ---------------------------------------------------------
-# 6️⃣ GET /circuits/{circuit_id}/races
+# 7️⃣ GET /circuits/{circuit_slug}/races
 # Returns all races hosted at this circuit
 # ---------------------------------------------------------
-@router.get("/{circuit_id}/races")
+@router.get("/{circuit_slug}/races")
 def circuit_races(
-    circuit_id: int,
+    circuit_slug: str,
     year: int | None = Query(None, ge=1950),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve races held at a given circuit.
-
-    Optional:
-    - year: restrict to one season
-    """
-
-    ensure_circuit_exists(circuit_id, db)
+    circuit_id = get_circuit_id_by_slug(circuit_slug, db)
 
     if year is not None:
         ensure_season_exists(year, db)
@@ -298,7 +352,7 @@ def circuit_races(
     ).fetchall()
 
     return {
-        "circuit_id": circuit_id,
+        "circuit_slug": circuit_slug,
         "season": year,
         "count": len(rows),
         "data": [dict(row._mapping) for row in rows],
@@ -306,16 +360,12 @@ def circuit_races(
 
 
 # ---------------------------------------------------------
-# 7️⃣ GET /circuits/{circuit_id}/winners
+# 8️⃣ GET /circuits/{circuit_slug}/winners
 # Returns race winners at this circuit by season
 # ---------------------------------------------------------
-@router.get("/{circuit_id}/winners")
-def circuit_winners(circuit_id: int, db: Session = Depends(get_db)):
-    """
-    Retrieve race winners at a circuit across all seasons.
-    """
-
-    ensure_circuit_exists(circuit_id, db)
+@router.get("/{circuit_slug}/winners")
+def circuit_winners(circuit_slug: str, db: Session = Depends(get_db)):
+    circuit_id = get_circuit_id_by_slug(circuit_slug, db)
 
     sql = """
     SELECT
@@ -341,28 +391,23 @@ def circuit_winners(circuit_id: int, db: Session = Depends(get_db)):
     rows = db.execute(text(sql), {"circuit_id": circuit_id}).fetchall()
 
     return {
-        "circuit_id": circuit_id,
+        "circuit_slug": circuit_slug,
         "count": len(rows),
         "data": [dict(row._mapping) for row in rows],
     }
 
 
 # ---------------------------------------------------------
-# 8️⃣ GET /circuits/{circuit_id}/top-drivers
+# 9️⃣ GET /circuits/{circuit_slug}/top-drivers
 # Best-performing drivers at this circuit
 # ---------------------------------------------------------
-@router.get("/{circuit_id}/top-drivers")
+@router.get("/{circuit_slug}/top-drivers")
 def circuit_top_drivers(
-    circuit_id: int,
+    circuit_slug: str,
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve top-performing drivers at a circuit.
-    Ranked by wins, then podiums, then total points.
-    """
-
-    ensure_circuit_exists(circuit_id, db)
+    circuit_id = get_circuit_id_by_slug(circuit_slug, db)
 
     sql = """
     SELECT
@@ -392,7 +437,7 @@ def circuit_top_drivers(
     ).fetchall()
 
     return {
-        "circuit_id": circuit_id,
+        "circuit_slug": circuit_slug,
         "limit": limit,
         "count": len(rows),
         "data": [dict(row._mapping) for row in rows],
@@ -400,21 +445,16 @@ def circuit_top_drivers(
 
 
 # ---------------------------------------------------------
-# 9️⃣ GET /circuits/{circuit_id}/top-constructors
+# 🔟 GET /circuits/{circuit_slug}/top-constructors
 # Best-performing constructors at this circuit
 # ---------------------------------------------------------
-@router.get("/{circuit_id}/top-constructors")
+@router.get("/{circuit_slug}/top-constructors")
 def circuit_top_constructors(
-    circuit_id: int,
+    circuit_slug: str,
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve top-performing constructors at a circuit.
-    Ranked by wins, then podiums, then total points.
-    """
-
-    ensure_circuit_exists(circuit_id, db)
+    circuit_id = get_circuit_id_by_slug(circuit_slug, db)
 
     sql = """
     SELECT
@@ -442,7 +482,7 @@ def circuit_top_constructors(
     ).fetchall()
 
     return {
-        "circuit_id": circuit_id,
+        "circuit_slug": circuit_slug,
         "limit": limit,
         "count": len(rows),
         "data": [dict(row._mapping) for row in rows],
@@ -450,22 +490,18 @@ def circuit_top_constructors(
 
 
 # ---------------------------------------------------------
-# 🔟 PATCH /circuits/{circuit_id}
+# 1️⃣1️⃣ PATCH /circuits/{circuit_slug}
 # Update an existing circuit (admin only)
 # ---------------------------------------------------------
-@router.patch("/{circuit_id}")
+@router.patch("/{circuit_slug}")
 def update_circuit(
-    circuit_id: int,
+    circuit_slug: str,
     payload: CircuitUpdate,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    """
-    Update a circuit.
-    Admin only.
-    """
-
-    ensure_circuit_exists(circuit_id, db)
+    circuit_row = get_circuit_row_by_slug_or_404(circuit_slug, db)
+    circuit_id = circuit_row._mapping["circuit_id"]
 
     existing = db.execute(
         text("""
@@ -507,28 +543,22 @@ def update_circuit(
 
     return {
         "message": "Circuit updated successfully",
-        "data": dict(row._mapping),
+        "data": add_circuit_slug(dict(row._mapping)),
     }
 
 
 # ---------------------------------------------------------
-# 1️⃣1️⃣ DELETE /circuits/{circuit_id}
+# 1️⃣2️⃣ DELETE /circuits/{circuit_slug}
 # Delete a circuit (admin only)
 # ---------------------------------------------------------
-@router.delete("/{circuit_id}")
+@router.delete("/{circuit_slug}")
 def delete_circuit(
-    circuit_id: int,
+    circuit_slug: str,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_admin),
 ):
-    """
-    Delete a circuit.
-    Admin only.
-
-    Prevent deletion if related races exist.
-    """
-
-    ensure_circuit_exists(circuit_id, db)
+    circuit_row = get_circuit_row_by_slug_or_404(circuit_slug, db)
+    circuit_id = circuit_row._mapping["circuit_id"]
 
     dependency_count = db.execute(
         text("SELECT COUNT(*) FROM races WHERE circuit_id = :circuit_id"),
@@ -549,32 +579,5 @@ def delete_circuit(
 
     return {
         "message": "Circuit deleted successfully",
-        "circuit_id": circuit_id,
+        "circuit_slug": circuit_slug,
     }
-
-
-# ---------------------------------------------------------
-# 1️⃣2️⃣ GET /circuits/{circuit_id}
-# Returns a single circuit by ID
-# ---------------------------------------------------------
-@router.get("/{circuit_id}")
-def get_circuit(circuit_id: int, db: Session = Depends(get_db)):
-    """
-    Retrieve a single circuit by ID.
-    """
-
-    sql = """
-    SELECT circuit_id, name, location, country, lat, lng, alt
-    FROM circuits
-    WHERE circuit_id = :circuit_id;
-    """
-
-    row = db.execute(
-        text(sql),
-        {"circuit_id": circuit_id},
-    ).fetchone()
-
-    if row is None:
-        raise HTTPException(status_code=404, detail="Circuit not found")
-
-    return dict(row._mapping)

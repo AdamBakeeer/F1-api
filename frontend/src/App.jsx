@@ -3,6 +3,7 @@ import './App.css'
 import DriversPage from './pages/DriversPage'
 import ConstructorsPage from './pages/ConstructorsPage'
 import RacesPage from './pages/RacesPage'
+import CircuitsPage from './pages/CircuitsPage'
 
 function App() {
   const [drivers, setDrivers] = useState([])
@@ -32,7 +33,7 @@ function App() {
           <button onClick={() => setPage('drivers')}>Drivers</button>
           <button onClick={() => setPage('constructors')}>Constructors</button>
           <button onClick={() => setPage('races')}>Races</button>
-          <a href="#">Races</a>
+          <button onClick={() => setPage('circuits')}>Circuits</button>
           <a href="#">Analytics</a>
           <button className="login-btn">Login</button>
         </div>
@@ -75,6 +76,7 @@ function App() {
       {page === 'drivers' && <DriversPage />}
       {page === 'constructors' && <ConstructorsPage />}
       {page === 'races' && <RacesPage />}
+      {page === 'circuits' && <CircuitsPage />}
     </div>
   )
 }
