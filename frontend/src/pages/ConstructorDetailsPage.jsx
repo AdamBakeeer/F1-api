@@ -1,65 +1,60 @@
 import { useEffect, useMemo, useState } from 'react'
 import './ConstructorDetailsPage.css'
 
-function ConstructorDetailsPage({ constructorSlug, goBack }) {
+function ConstructorDetailsPage({ constructorSlug, goBack, token, currentUser }) {
   const [constructorData, setConstructorData] = useState(null)
   const [stats, setStats] = useState(null)
   const [drivers, setDrivers] = useState([])
   const [seasons, setSeasons] = useState([])
-  const [bestCircuits, setBestCircuits] = useState([])
-  const [dnfs, setDnfs] = useState(null)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('overview')
   const [selectedSeason, setSelectedSeason] = useState('')
 
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
+  const [favoriteMessage, setFavoriteMessage] = useState('')
+  const [favoriteError, setFavoriteError] = useState('')
+
   useEffect(() => {
     fetchConstructorData()
   }, [constructorSlug])
 
   useEffect(() => {
-    if (constructorSlug) {
-      fetchDrivers()
+    if (token && currentUser?.role === 'user' && constructorSlug) {
+      checkFavoriteStatus()
+    } else {
+      setIsFavorite(false)
     }
-  }, [constructorSlug, selectedSeason])
+  }, [token, currentUser, constructorSlug])
 
   const fetchConstructorData = async () => {
     try {
       setLoading(true)
       setError('')
 
-      const [
-        constructorRes,
-        statsRes,
-        seasonsRes,
-        circuitsRes,
-        dnfsRes
-      ] = await Promise.all([
+      const [constructorRes, statsRes, driversRes, seasonsRes] = await Promise.all([
         fetch(`http://127.0.0.1:8000/constructors/${constructorSlug}`),
         fetch(`http://127.0.0.1:8000/constructors/${constructorSlug}/stats`),
-        fetch(`http://127.0.0.1:8000/constructors/${constructorSlug}/seasons`),
-        fetch(`http://127.0.0.1:8000/constructors/${constructorSlug}/best-circuits?limit=5`),
-        fetch(`http://127.0.0.1:8000/constructors/${constructorSlug}/dnfs`)
+        fetch(`http://127.0.0.1:8000/constructors/${constructorSlug}/drivers`),
+        fetch(`http://127.0.0.1:8000/constructors/${constructorSlug}/seasons`)
       ])
 
       const constructorJson = await constructorRes.json()
       const statsJson = await statsRes.json()
+      const driversJson = await driversRes.json()
       const seasonsJson = await seasonsRes.json()
-      const circuitsJson = await circuitsRes.json()
-      const dnfsJson = await dnfsRes.json()
 
       if (!constructorRes.ok) throw new Error(constructorJson.detail || 'Failed to load constructor')
       if (!statsRes.ok) throw new Error(statsJson.detail || 'Failed to load stats')
+      if (!driversRes.ok) throw new Error(driversJson.detail || 'Failed to load drivers')
       if (!seasonsRes.ok) throw new Error(seasonsJson.detail || 'Failed to load seasons')
-      if (!circuitsRes.ok) throw new Error(circuitsJson.detail || 'Failed to load best circuits')
-      if (!dnfsRes.ok) throw new Error(dnfsJson.detail || 'Failed to load DNF data')
 
       setConstructorData(constructorJson)
       setStats(statsJson.data)
+      setDrivers(driversJson.data || [])
       setSeasons(seasonsJson.data || [])
-      setBestCircuits(circuitsJson.data || [])
-      setDnfs(dnfsJson)
 
       if ((seasonsJson.data || []).length > 0) {
         const latestYear = String(seasonsJson.data[seasonsJson.data.length - 1].year)
@@ -72,30 +67,62 @@ function ConstructorDetailsPage({ constructorSlug, goBack }) {
     }
   }
 
-  const fetchDrivers = async () => {
+  const checkFavoriteStatus = async () => {
     try {
-      let url = `http://127.0.0.1:8000/constructors/${constructorSlug}/drivers`
+      const response = await fetch('http://127.0.0.1:8000/favorites/', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
 
-      if (selectedSeason) {
-        url += `?year=${selectedSeason}`
-      }
-
-      const response = await fetch(url)
       const data = await response.json()
+      if (!response.ok) return
 
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to load drivers')
-      }
-
-      setDrivers(data.data || [])
+      const favoriteConstructors = data.constructors || []
+      setIsFavorite(favoriteConstructors.some((item) => item.constructor_slug === constructorSlug))
     } catch {
-      setDrivers([])
+      setIsFavorite(false)
     }
   }
 
-  const seasonOptions = useMemo(() => {
-    return seasons.map((item) => String(item.year))
-  }, [seasons])
+  const handleFavoriteToggle = async () => {
+    try {
+      setFavoriteLoading(true)
+      setFavoriteError('')
+      setFavoriteMessage('')
+
+      const method = isFavorite ? 'DELETE' : 'POST'
+
+      const response = await fetch(`http://127.0.0.1:8000/favorites/constructors/${constructorSlug}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to update favorite')
+      }
+
+      setIsFavorite(!isFavorite)
+      setFavoriteMessage(isFavorite ? 'Removed from favorites' : 'Added to favorites')
+    } catch (err) {
+      setFavoriteError(err.message || 'Something went wrong')
+    } finally {
+      setFavoriteLoading(false)
+    }
+  }
+
+  const filteredDrivers = useMemo(() => {
+    if (!selectedSeason) return drivers
+    return drivers.filter((driver) =>
+      String(driver.first_season) <= selectedSeason && String(driver.last_season) >= selectedSeason
+    )
+  }, [drivers, selectedSeason])
+
+  const seasonOptions = useMemo(() => seasons.map((item) => String(item.year)), [seasons])
 
   if (loading) {
     return (
@@ -125,6 +152,22 @@ function ConstructorDetailsPage({ constructorSlug, goBack }) {
           <h2>{constructorData.name}</h2>
           <p><strong>Nationality:</strong> {constructorData.nationality || 'N/A'}</p>
           <p><strong>Slug:</strong> {constructorData.constructor_slug}</p>
+
+          {currentUser?.role === 'user' && token && (
+            <div className="favorite-action-box">
+              <button
+                className={isFavorite ? 'favorite-btn active-favorite-btn' : 'favorite-btn'}
+                onClick={handleFavoriteToggle}
+                disabled={favoriteLoading}
+                type="button"
+              >
+                {favoriteLoading ? 'Updating...' : isFavorite ? '♥ Remove from Favorites' : '♡ Add to Favorites'}
+              </button>
+
+              {favoriteMessage && <p className="favorite-message success">{favoriteMessage}</p>}
+              {favoriteError && <p className="favorite-message error">{favoriteError}</p>}
+            </div>
+          )}
         </div>
       )}
 
@@ -135,64 +178,30 @@ function ConstructorDetailsPage({ constructorSlug, goBack }) {
         <button className={activeTab === 'drivers' ? 'details-tab active-details-tab' : 'details-tab'} onClick={() => setActiveTab('drivers')}>
           Drivers
         </button>
-        <button className={activeTab === 'circuits' ? 'details-tab active-details-tab' : 'details-tab'} onClick={() => setActiveTab('circuits')}>
-          Best Circuits
-        </button>
-        <button className={activeTab === 'dnfs' ? 'details-tab active-details-tab' : 'details-tab'} onClick={() => setActiveTab('dnfs')}>
-          DNFs
+        <button className={activeTab === 'seasons' ? 'details-tab active-details-tab' : 'details-tab'} onClick={() => setActiveTab('seasons')}>
+          Seasons
         </button>
       </div>
 
-      {activeTab === 'overview' && (
-        <>
-          {stats && (
-            <div className="constructor-stats-section">
-              <h3>Constructor Statistics</h3>
-              <div className="constructor-stats-grid">
-                <div className="constructor-stat-box"><span>Race Entries</span><strong>{stats.race_entries}</strong></div>
-                <div className="constructor-stat-box"><span>Total Points</span><strong>{stats.total_points}</strong></div>
-                <div className="constructor-stat-box"><span>Wins</span><strong>{stats.wins}</strong></div>
-                <div className="constructor-stat-box"><span>Podiums</span><strong>{stats.podiums}</strong></div>
-                <div className="constructor-stat-box"><span>First Season</span><strong>{stats.first_season}</strong></div>
-                <div className="constructor-stat-box"><span>Last Season</span><strong>{stats.last_season}</strong></div>
-              </div>
-            </div>
-          )}
-
-          <div className="constructor-data-section">
-            <h3>Season History</h3>
-            <div className="constructor-table-wrapper">
-              <table className="constructor-table">
-                <thead>
-                  <tr>
-                    <th>Season</th>
-                    <th>Entries</th>
-                    <th>Points</th>
-                    <th>Wins</th>
-                    <th>Podiums</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {seasons.map((season, index) => (
-                    <tr key={index}>
-                      <td>{season.year}</td>
-                      <td>{season.race_entries}</td>
-                      <td>{season.total_points}</td>
-                      <td>{season.wins}</td>
-                      <td>{season.podiums}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {activeTab === 'overview' && stats && (
+        <div className="constructor-stats-section">
+          <h3>Constructor Statistics</h3>
+          <div className="stats-grid">
+            <div className="stat-box"><span>Race Entries</span><strong>{stats.race_entries}</strong></div>
+            <div className="stat-box"><span>Total Points</span><strong>{stats.total_points}</strong></div>
+            <div className="stat-box"><span>Wins</span><strong>{stats.wins}</strong></div>
+            <div className="stat-box"><span>Podiums</span><strong>{stats.podiums}</strong></div>
+            <div className="stat-box"><span>First Season</span><strong>{stats.first_season}</strong></div>
+            <div className="stat-box"><span>Last Season</span><strong>{stats.last_season}</strong></div>
           </div>
-        </>
+        </div>
       )}
 
       {activeTab === 'drivers' && (
-        <div className="constructor-data-section">
-          <div className="constructor-section-header">
-            <h3>Drivers</h3>
+        <div className="constructor-results-section">
+          <h3>Drivers</h3>
+
+          <div className="details-filters">
             <select
               value={selectedSeason}
               onChange={(e) => setSelectedSeason(e.target.value)}
@@ -200,36 +209,38 @@ function ConstructorDetailsPage({ constructorSlug, goBack }) {
             >
               <option value="">All Seasons</option>
               {seasonOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
+                <option key={year} value={year}>{year}</option>
               ))}
             </select>
           </div>
 
-          <div className="constructor-table-wrapper">
-            <table className="constructor-table">
+          <div className="results-table-wrapper">
+            <table className="results-table">
               <thead>
                 <tr>
                   <th>Driver</th>
                   <th>Code</th>
                   <th>Nationality</th>
+                  <th>First Season</th>
+                  <th>Last Season</th>
                   <th>Entries</th>
-                  <th>Points</th>
                   <th>Wins</th>
                   <th>Podiums</th>
+                  <th>Points</th>
                 </tr>
               </thead>
               <tbody>
-                {drivers.map((driver, index) => (
+                {filteredDrivers.map((driver, index) => (
                   <tr key={index}>
                     <td>{driver.forename} {driver.surname}</td>
                     <td>{driver.code || 'N/A'}</td>
                     <td>{driver.nationality || 'N/A'}</td>
+                    <td>{driver.first_season}</td>
+                    <td>{driver.last_season}</td>
                     <td>{driver.race_entries}</td>
-                    <td>{driver.total_points}</td>
                     <td>{driver.wins}</td>
                     <td>{driver.podiums}</td>
+                    <td>{driver.total_points}</td>
                   </tr>
                 ))}
               </tbody>
@@ -238,85 +249,34 @@ function ConstructorDetailsPage({ constructorSlug, goBack }) {
         </div>
       )}
 
-      {activeTab === 'circuits' && (
-        <div className="constructor-data-section">
-          <h3>Best Circuits</h3>
-          <div className="constructor-circuit-grid">
-            {bestCircuits.map((circuit, index) => (
-              <div key={index} className="constructor-circuit-card">
-                <div className="constructor-circuit-top-line"></div>
-                <h4>{circuit.circuit_name}</h4>
-                <p>{circuit.location}, {circuit.country}</p>
-                <p><strong>Entries:</strong> {circuit.race_entries}</p>
-                <p><strong>Wins:</strong> {circuit.wins}</p>
-                <p><strong>Podiums:</strong> {circuit.podiums}</p>
-                <p><strong>Points:</strong> {circuit.total_points}</p>
-              </div>
-            ))}
+      {activeTab === 'seasons' && (
+        <div className="constructor-results-section">
+          <h3>Season History</h3>
+          <div className="results-table-wrapper">
+            <table className="results-table">
+              <thead>
+                <tr>
+                  <th>Season</th>
+                  <th>Entries</th>
+                  <th>Points</th>
+                  <th>Wins</th>
+                  <th>Podiums</th>
+                </tr>
+              </thead>
+              <tbody>
+                {seasons.map((season, index) => (
+                  <tr key={index}>
+                    <td>{season.year}</td>
+                    <td>{season.race_entries}</td>
+                    <td>{season.total_points}</td>
+                    <td>{season.wins}</td>
+                    <td>{season.podiums}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      )}
-
-      {activeTab === 'dnfs' && dnfs && (
-        <>
-          <div className="constructor-stats-section">
-            <h3>DNF Overview</h3>
-            <div className="constructor-stats-grid">
-              <div className="constructor-stat-box">
-                <span>Total Non-Finishes</span>
-                <strong>{dnfs.total_non_finishes}</strong>
-              </div>
-            </div>
-          </div>
-
-          <div className="constructor-data-section">
-            <h3>DNF Breakdown by Status</h3>
-            <div className="constructor-table-wrapper">
-              <table className="constructor-table">
-                <thead>
-                  <tr>
-                    <th>Status</th>
-                    <th>Count</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dnfs.breakdown_by_status.map((item, index) => (
-                    <tr key={index}>
-                      <td>{item.status}</td>
-                      <td>{item.count}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="constructor-data-section">
-            <h3>DNF Rate by Season</h3>
-            <div className="constructor-table-wrapper">
-              <table className="constructor-table">
-                <thead>
-                  <tr>
-                    <th>Season</th>
-                    <th>Entries</th>
-                    <th>Non-Finishes</th>
-                    <th>DNF Rate %</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dnfs.dnf_rate_by_season.map((item, index) => (
-                    <tr key={index}>
-                      <td>{item.year}</td>
-                      <td>{item.race_entries}</td>
-                      <td>{item.non_finishes}</td>
-                      <td>{item.dnf_rate_percent}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
       )}
     </div>
   )

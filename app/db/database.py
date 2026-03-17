@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 # NOTE: using local Postgres without password
 DATABASE_URL = "postgresql+psycopg2://adambakeer@localhost/f1db"
@@ -11,6 +11,9 @@ SessionLocal = sessionmaker(
     autoflush=False,
     bind=engine
 )
+
+Base = declarative_base()
+
 
 def get_db():
     """

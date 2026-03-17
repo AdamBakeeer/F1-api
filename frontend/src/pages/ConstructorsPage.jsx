@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import './ConstructorsPage.css'
 import ConstructorDetailsPage from './ConstructorDetailsPage'
 
-function ConstructorsPage() {
+function ConstructorsPage({ token, currentUser }) {
   const [constructors, setConstructors] = useState([])
   const [standings, setStandings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedConstructorSlug, setSelectedConstructorSlug] = useState(null)
 
-  const [view, setView] = useState('current')
+  const [view, setView] = useState('current') // current | all-time | standings
   const [search, setSearch] = useState('')
   const [season, setSeason] = useState('2024')
   const [roundFilter, setRoundFilter] = useState('')
@@ -54,13 +54,8 @@ function ConstructorsPage() {
         const params = new URLSearchParams()
         params.append('limit', '200')
 
-        if (search.trim()) {
-          params.append('q', search.trim())
-        }
-
-        if (nationalityFilter) {
-          params.append('nationality', nationalityFilter)
-        }
+        if (search.trim()) params.append('q', search.trim())
+        if (nationalityFilter) params.append('nationality', nationalityFilter)
 
         url = `http://127.0.0.1:8000/constructors?${params.toString()}`
       } else if (view === 'standings') {
@@ -98,9 +93,7 @@ function ConstructorsPage() {
   }
 
   const filteredConstructors = useMemo(() => {
-    if (view === 'all-time') {
-      return constructors
-    }
+    if (view === 'all-time') return constructors
 
     return constructors.filter((constructor) => {
       const name = (constructor.name || '').toLowerCase()
@@ -146,9 +139,9 @@ function ConstructorsPage() {
       return 'Explore the active Formula 1 constructors currently represented in your backend API.'
     }
     if (view === 'all-time') {
-      return 'Browse the historical constructor database and explore Formula 1 team history.'
+      return 'Browse the historical constructor database and explore the full Formula 1 archive.'
     }
-    return 'View constructor standings with season and round-based progression.'
+    return 'View constructor standings in a clean, interactive format, including round-by-round progression.'
   }
 
   if (selectedConstructorSlug) {
@@ -156,6 +149,8 @@ function ConstructorsPage() {
       <ConstructorDetailsPage
         constructorSlug={selectedConstructorSlug}
         goBack={() => setSelectedConstructorSlug(null)}
+        token={token}
+        currentUser={currentUser}
       />
     )
   }
@@ -194,7 +189,7 @@ function ConstructorsPage() {
         <div className="constructors-filters">
           <input
             type="text"
-            placeholder="Search by team name or nationality..."
+            placeholder="Search by name or nationality..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="constructors-search"
@@ -255,7 +250,7 @@ function ConstructorsPage() {
               className="constructor-card clickable-card"
               onClick={() => setSelectedConstructorSlug(constructor.constructor_slug)}
             >
-              <div className="constructor-card-top-line"></div>
+              <div className="constructor-top-line"></div>
 
               <div className="constructor-card-header">
                 <h3>{constructor.name}</h3>
@@ -279,8 +274,8 @@ function ConstructorsPage() {
       )}
 
       {!loading && !error && view === 'standings' && (
-        <div className="constructors-standings-wrapper">
-          <table className="constructors-standings-table">
+        <div className="standings-wrapper">
+          <table className="standings-table">
             <thead>
               <tr>
                 <th>Pos</th>
@@ -296,7 +291,7 @@ function ConstructorsPage() {
               {filteredStandings.map((constructor) => (
                 <tr
                   key={constructor.constructor_id}
-                  className="constructors-standings-row"
+                  className="standings-row"
                   onClick={() => setSelectedConstructorSlug(constructor.constructor_slug)}
                 >
                   <td>{constructor.position}</td>

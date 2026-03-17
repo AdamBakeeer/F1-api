@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './CircuitDetailsPage.css'
 
-function CircuitDetailsPage({ circuitSlug, goBack }) {
+function CircuitDetailsPage({ circuitSlug, goBack, token, currentUser }) {
   const [circuit, setCircuit] = useState(null)
   const [stats, setStats] = useState(null)
   const [races, setRaces] = useState([])
@@ -13,9 +13,24 @@ function CircuitDetailsPage({ circuitSlug, goBack }) {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState('overview')
 
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
+  const [favoriteMessage, setFavoriteMessage] = useState('')
+  const [favoriteError, setFavoriteError] = useState('')
+
   useEffect(() => {
     fetchCircuitData()
   }, [circuitSlug])
+
+  useEffect(() => {
+    if (token && currentUser?.role === 'user' && circuitSlug) {
+      checkFavoriteStatus()
+    } else {
+      setIsFavorite(false)
+      setFavoriteMessage('')
+      setFavoriteError('')
+    }
+  }, [token, currentUser, circuitSlug])
 
   const fetchCircuitData = async () => {
     try {
@@ -65,6 +80,52 @@ function CircuitDetailsPage({ circuitSlug, goBack }) {
     }
   }
 
+  const checkFavoriteStatus = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/favorites/', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+      if (!response.ok) return
+
+      const favoriteCircuits = data.circuits || []
+      setIsFavorite(favoriteCircuits.some((item) => item.circuit_slug === circuitSlug))
+    } catch {
+      setIsFavorite(false)
+    }
+  }
+
+  const handleFavoriteToggle = async () => {
+    try {
+      setFavoriteLoading(true)
+      setFavoriteError('')
+      setFavoriteMessage('')
+
+      const response = await fetch(`http://127.0.0.1:8000/favorites/circuits/${circuitSlug}`, {
+        method: isFavorite ? 'DELETE' : 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to update favorite')
+      }
+
+      setIsFavorite((prev) => !prev)
+      setFavoriteMessage(isFavorite ? 'Removed from favorites' : 'Added to favorites')
+    } catch (err) {
+      setFavoriteError(err.message || 'Something went wrong')
+    } finally {
+      setFavoriteLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="circuit-details-page">
@@ -96,23 +157,58 @@ function CircuitDetailsPage({ circuitSlug, goBack }) {
           <p><strong>Latitude:</strong> {circuit.lat ?? 'N/A'}</p>
           <p><strong>Longitude:</strong> {circuit.lng ?? 'N/A'}</p>
           <p><strong>Altitude:</strong> {circuit.alt ?? 'N/A'}</p>
+
+          {currentUser?.role === 'user' && token && (
+            <div className="favorite-action-box">
+              <button
+                className={isFavorite ? 'favorite-btn active-favorite-btn' : 'favorite-btn'}
+                onClick={handleFavoriteToggle}
+                disabled={favoriteLoading}
+                type="button"
+              >
+                {favoriteLoading
+                  ? 'Updating...'
+                  : isFavorite
+                    ? '♥ Remove from Favorites'
+                    : '♡ Add to Favorites'}
+              </button>
+
+              {favoriteMessage && <p className="favorite-message success">{favoriteMessage}</p>}
+              {favoriteError && <p className="favorite-message error">{favoriteError}</p>}
+            </div>
+          )}
         </div>
       )}
 
       <div className="details-tabs">
-        <button className={activeTab === 'overview' ? 'details-tab active-details-tab' : 'details-tab'} onClick={() => setActiveTab('overview')}>
+        <button
+          className={activeTab === 'overview' ? 'details-tab active-details-tab' : 'details-tab'}
+          onClick={() => setActiveTab('overview')}
+        >
           Overview
         </button>
-        <button className={activeTab === 'races' ? 'details-tab active-details-tab' : 'details-tab'} onClick={() => setActiveTab('races')}>
+        <button
+          className={activeTab === 'races' ? 'details-tab active-details-tab' : 'details-tab'}
+          onClick={() => setActiveTab('races')}
+        >
           Hosted Races
         </button>
-        <button className={activeTab === 'winners' ? 'details-tab active-details-tab' : 'details-tab'} onClick={() => setActiveTab('winners')}>
+        <button
+          className={activeTab === 'winners' ? 'details-tab active-details-tab' : 'details-tab'}
+          onClick={() => setActiveTab('winners')}
+        >
           Winners
         </button>
-        <button className={activeTab === 'drivers' ? 'details-tab active-details-tab' : 'details-tab'} onClick={() => setActiveTab('drivers')}>
+        <button
+          className={activeTab === 'drivers' ? 'details-tab active-details-tab' : 'details-tab'}
+          onClick={() => setActiveTab('drivers')}
+        >
           Top Drivers
         </button>
-        <button className={activeTab === 'constructors' ? 'details-tab active-details-tab' : 'details-tab'} onClick={() => setActiveTab('constructors')}>
+        <button
+          className={activeTab === 'constructors' ? 'details-tab active-details-tab' : 'details-tab'}
+          onClick={() => setActiveTab('constructors')}
+        >
           Top Constructors
         </button>
       </div>
@@ -126,7 +222,10 @@ function CircuitDetailsPage({ circuitSlug, goBack }) {
             <div className="circuit-stat-box"><span>Last Season</span><strong>{stats.last_season}</strong></div>
             <div className="circuit-stat-box"><span>Unique Drivers</span><strong>{stats.unique_drivers}</strong></div>
             <div className="circuit-stat-box"><span>Unique Constructors</span><strong>{stats.unique_constructors}</strong></div>
-            <div className="circuit-stat-box"><span>Avg Points / Result</span><strong>{Number(stats.avg_points_awarded_per_result).toFixed(2)}</strong></div>
+            <div className="circuit-stat-box">
+              <span>Avg Points / Result</span>
+              <strong>{Number(stats.avg_points_awarded_per_result).toFixed(2)}</strong>
+            </div>
           </div>
         </div>
       )}

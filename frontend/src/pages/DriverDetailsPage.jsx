@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import './DriverDetailsPage.css'
 
-function DriverDetailsPage({ driverSlug, goBack }) {
+function DriverDetailsPage({ driverSlug, goBack, token, currentUser }) {
   const [driver, setDriver] = useState(null)
   const [stats, setStats] = useState(null)
   const [results, setResults] = useState([])
@@ -18,6 +18,11 @@ function DriverDetailsPage({ driverSlug, goBack }) {
   const [selectedSeason, setSelectedSeason] = useState('')
   const [selectedTeam, setSelectedTeam] = useState('')
 
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
+  const [favoriteMessage, setFavoriteMessage] = useState('')
+  const [favoriteError, setFavoriteError] = useState('')
+
   useEffect(() => {
     fetchDriverCoreData()
   }, [driverSlug])
@@ -27,6 +32,14 @@ function DriverDetailsPage({ driverSlug, goBack }) {
       fetchTeammates()
     }
   }, [driverSlug, selectedSeason])
+
+  useEffect(() => {
+    if (token && currentUser?.role === 'user' && driverSlug) {
+      checkFavoriteStatus()
+    } else {
+      setIsFavorite(false)
+    }
+  }, [token, currentUser, driverSlug])
 
   const fetchDriverCoreData = async () => {
     try {
@@ -102,8 +115,58 @@ function DriverDetailsPage({ driverSlug, goBack }) {
       }
 
       setTeammates(data.data || [])
-    } catch (err) {
+    } catch {
       setTeammates([])
+    }
+  }
+
+  const checkFavoriteStatus = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/favorites/', {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) return
+
+      const favoriteDrivers = data.drivers || []
+      const exists = favoriteDrivers.some((item) => item.driver_slug === driverSlug)
+      setIsFavorite(exists)
+    } catch {
+      setIsFavorite(false)
+    }
+  }
+
+  const handleFavoriteToggle = async () => {
+    try {
+      setFavoriteLoading(true)
+      setFavoriteError('')
+      setFavoriteMessage('')
+
+      const method = isFavorite ? 'DELETE' : 'POST'
+
+      const response = await fetch(`http://127.0.0.1:8000/favorites/drivers/${driverSlug}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.detail || 'Failed to update favorite')
+      }
+
+      setIsFavorite(!isFavorite)
+      setFavoriteMessage(isFavorite ? 'Removed from favorites' : 'Added to favorites')
+    } catch (err) {
+      setFavoriteError(err.message || 'Something went wrong')
+    } finally {
+      setFavoriteLoading(false)
     }
   }
 
@@ -151,6 +214,26 @@ function DriverDetailsPage({ driverSlug, goBack }) {
           <p><strong>Nationality:</strong> {driver.nationality || 'N/A'}</p>
           <p><strong>Date of Birth:</strong> {driver.dob || 'N/A'}</p>
           <p><strong>Slug:</strong> {driver.driver_slug}</p>
+
+          {currentUser?.role === 'user' && token && (
+            <div className="favorite-action-box">
+              <button
+                className={isFavorite ? 'favorite-btn active-favorite-btn' : 'favorite-btn'}
+                onClick={handleFavoriteToggle}
+                disabled={favoriteLoading}
+                type="button"
+              >
+                {favoriteLoading
+                  ? 'Updating...'
+                  : isFavorite
+                    ? '♥ Remove from Favorites'
+                    : '♡ Add to Favorites'}
+              </button>
+
+              {favoriteMessage && <p className="favorite-message success">{favoriteMessage}</p>}
+              {favoriteError && <p className="favorite-message error">{favoriteError}</p>}
+            </div>
+          )}
         </div>
       )}
 

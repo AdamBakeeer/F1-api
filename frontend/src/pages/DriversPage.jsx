@@ -2,14 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import './DriversPage.css'
 import DriverDetailsPage from './DriverDetailsPage'
 
-function DriversPage() {
+function DriversPage({ token, currentUser }) {
   const [drivers, setDrivers] = useState([])
   const [standings, setStandings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedDriverSlug, setSelectedDriverSlug] = useState(null)
 
-  const [view, setView] = useState('current') // current | all-time | standings
+  const [view, setView] = useState('current')
   const [search, setSearch] = useState('')
   const [season, setSeason] = useState('2024')
   const [roundFilter, setRoundFilter] = useState('')
@@ -54,21 +54,13 @@ function DriversPage() {
         const params = new URLSearchParams()
         params.append('limit', '200')
 
-        if (search.trim()) {
-          params.append('q', search.trim())
-        }
-
-        if (nationalityFilter) {
-          params.append('nationality', nationalityFilter)
-        }
+        if (search.trim()) params.append('q', search.trim())
+        if (nationalityFilter) params.append('nationality', nationalityFilter)
 
         url = `http://127.0.0.1:8000/drivers?${params.toString()}`
       } else if (view === 'standings') {
         const params = new URLSearchParams()
-
-        if (roundFilter) {
-          params.append('round', roundFilter)
-        }
+        if (roundFilter) params.append('round', roundFilter)
 
         const queryString = params.toString()
         url = queryString
@@ -98,9 +90,7 @@ function DriversPage() {
   }
 
   const filteredDrivers = useMemo(() => {
-    if (view === 'all-time') {
-      return drivers
-    }
+    if (view === 'all-time') return drivers
 
     return drivers.filter((driver) => {
       const fullName = `${driver.forename} ${driver.surname}`.toLowerCase()
@@ -162,6 +152,8 @@ function DriversPage() {
       <DriverDetailsPage
         driverSlug={selectedDriverSlug}
         goBack={() => setSelectedDriverSlug(null)}
+        token={token}
+        currentUser={currentUser}
       />
     )
   }

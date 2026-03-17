@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import './CircuitsPage.css'
 import CircuitDetailsPage from './CircuitDetailsPage'
 
-function CircuitsPage() {
+function CircuitsPage({ token, currentUser }) {
   const [circuits, setCircuits] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -105,6 +105,8 @@ function CircuitsPage() {
       <CircuitDetailsPage
         circuitSlug={selectedCircuitSlug}
         goBack={() => setSelectedCircuitSlug(null)}
+        token={token}
+        currentUser={currentUser}
       />
     )
   }

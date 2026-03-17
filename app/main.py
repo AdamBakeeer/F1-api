@@ -1,8 +1,13 @@
 from fastapi import FastAPI
-from app.api import drivers, constructors, circuits, races, analytics, auth
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api import drivers, constructors, circuits, races, analytics, auth, favorites
+from app.db.database import Base, engine
+from app.models import models
+
 app = FastAPI(title="F1 API")
+
+Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,6 +26,7 @@ app.include_router(constructors.router)
 app.include_router(circuits.router)
 app.include_router(races.router)
 app.include_router(analytics.router)
+app.include_router(favorites.router)
 
 
 @app.get("/")

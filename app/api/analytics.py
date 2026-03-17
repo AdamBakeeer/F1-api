@@ -28,10 +28,6 @@ def ensure_season_exists(year: int, db: Session) -> None:
 # ---------------------------------------------------------
 @router.get("/dnfs/by-season")
 def dnfs_by_season(db: Session = Depends(get_db)):
-    """
-    Retrieve DNF / non-finish trends by season.
-    """
-
     sql = """
     SELECT
         ra.year,
@@ -76,15 +72,6 @@ def most_successful_drivers(
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve the most successful drivers of all time.
-
-    Sort options:
-    - wins
-    - podiums
-    - points
-    """
-
     order_map = {
         "wins": "wins DESC, podiums DESC, total_points DESC",
         "podiums": "podiums DESC, wins DESC, total_points DESC",
@@ -132,15 +119,6 @@ def most_successful_constructors(
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve the most successful constructors of all time.
-
-    Sort options:
-    - wins
-    - podiums
-    - points
-    """
-
     order_map = {
         "wins": "wins DESC, podiums DESC, total_points DESC",
         "podiums": "podiums DESC, wins DESC, total_points DESC",
@@ -186,15 +164,6 @@ def circuit_specialists(
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve top driver-circuit combinations.
-
-    Sort options:
-    - wins
-    - podiums
-    - points
-    """
-
     order_map = {
         "wins": "wins DESC, podiums DESC, total_points DESC",
         "podiums": "podiums DESC, wins DESC, total_points DESC",
@@ -248,10 +217,6 @@ def championship_battles(
     top_n: int = Query(2, ge=2, le=5),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve the top championship contenders for a season.
-    """
-
     ensure_season_exists(year, db)
 
     sql = """
@@ -299,10 +264,6 @@ def closest_title_fights(
     limit: int = Query(10, ge=1, le=30),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve seasons with the closest final title fights.
-    """
-
     sql = """
     WITH yearly_standings AS (
         SELECT
@@ -354,72 +315,6 @@ def closest_title_fights(
 
 
 # ---------------------------------------------------------
-# 7️⃣ GET /analytics/driver-consistency
-# Consistency-based driver ranking
-# ---------------------------------------------------------
-@router.get("/driver-consistency")
-def driver_consistency(
-    limit: int = Query(10, ge=1, le=50),
-    min_races: int = Query(20, ge=1, le=500),
-    db: Session = Depends(get_db),
-):
-    """
-    Retrieve the most consistent drivers based on
-    average finish, finish rate, podium rate, and points per race.
-    """
-
-    sql = """
-    SELECT
-        d.driver_id,
-        d.code,
-        d.forename,
-        d.surname,
-        d.nationality,
-        COUNT(res.result_id) AS race_entries,
-        ROUND(AVG(CASE WHEN res.position_order > 0 THEN res.position_order END), 2) AS average_finish_position,
-        ROUND(
-            100.0 * SUM(
-                CASE
-                    WHEN s.status ILIKE 'Finished' OR s.status LIKE '+%'
-                    THEN 1 ELSE 0
-                END
-            ) / NULLIF(COUNT(res.result_id), 0),
-            2
-        ) AS finish_rate_percent,
-        ROUND(
-            100.0 * SUM(CASE WHEN res.position_order IN (1, 2, 3) THEN 1 ELSE 0 END)
-            / NULLIF(COUNT(res.result_id), 0),
-            2
-        ) AS podium_rate_percent,
-        ROUND(COALESCE(SUM(res.points), 0) / NULLIF(COUNT(res.result_id), 0), 2) AS points_per_race
-    FROM results res
-    JOIN drivers d ON d.driver_id = res.driver_id
-    JOIN status s ON s.status_id = res.status_id
-    GROUP BY d.driver_id, d.code, d.forename, d.surname, d.nationality
-    HAVING COUNT(res.result_id) >= :min_races
-    ORDER BY average_finish_position ASC NULLS LAST,
-             finish_rate_percent DESC,
-             podium_rate_percent DESC,
-             points_per_race DESC,
-             d.surname,
-             d.forename
-    LIMIT :limit;
-    """
-
-    rows = db.execute(
-        text(sql),
-        {"limit": limit, "min_races": min_races},
-    ).fetchall()
-
-    return {
-        "limit": limit,
-        "min_races": min_races,
-        "count": len(rows),
-        "data": [dict(row._mapping) for row in rows],
-    }
-
-
-# ---------------------------------------------------------
 # 8️⃣ GET /analytics/comeback-drivers
 # Drivers who gain the most places on average
 # ---------------------------------------------------------
@@ -429,11 +324,6 @@ def comeback_drivers(
     min_races: int = Query(20, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve drivers with the best average comeback performance
-    based on grid position minus finishing position.
-    """
-
     sql = """
     SELECT
         d.driver_id,
@@ -493,10 +383,6 @@ def constructors_by_era(
     limit: int = Query(30, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve constructor performance grouped by decade/era.
-    """
-
     sql = """
     SELECT
         CONCAT((ra.year / 10) * 10, 's') AS era,
@@ -536,10 +422,6 @@ def circuit_difficulty(
     min_races: int = Query(3, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve circuits ranked by non-finish rate.
-    """
-
     sql = """
     SELECT
         ci.circuit_id,
@@ -590,6 +472,235 @@ def circuit_difficulty(
     return {
         "limit": limit,
         "min_races": min_races,
+        "count": len(rows),
+        "data": [dict(row._mapping) for row in rows],
+    }
+
+
+# ---------------------------------------------------------
+# 1️⃣1️⃣ GET /analytics/title-fight-progression/{year}
+# Top title contenders after each round
+# ---------------------------------------------------------
+@router.get("/title-fight-progression/{year}")
+def title_fight_progression(
+    year: int,
+    top_n: int = Query(2, ge=2, le=5),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve the championship progression after each round
+    for the top contenders in a given season.
+    """
+
+    ensure_season_exists(year, db)
+
+    sql = """
+    WITH cumulative_points AS (
+        SELECT
+            ra.year,
+            ra.round,
+            d.driver_id,
+            d.code,
+            d.forename,
+            d.surname,
+            d.nationality,
+            SUM(res.points) OVER (
+                PARTITION BY ra.year, d.driver_id
+                ORDER BY ra.round
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ) AS cumulative_points
+        FROM results res
+        JOIN races ra ON ra.race_id = res.race_id
+        JOIN drivers d ON d.driver_id = res.driver_id
+        WHERE ra.year = :year
+    ),
+    ranked_progression AS (
+        SELECT
+            year,
+            round,
+            driver_id,
+            code,
+            forename,
+            surname,
+            nationality,
+            cumulative_points,
+            ROW_NUMBER() OVER (
+                PARTITION BY year, round
+                ORDER BY cumulative_points DESC, surname, forename
+            ) AS standing_position
+        FROM cumulative_points
+    )
+    SELECT
+        year,
+        round,
+        driver_id,
+        code,
+        forename,
+        surname,
+        nationality,
+        cumulative_points,
+        standing_position
+    FROM ranked_progression
+    WHERE standing_position <= :top_n
+    ORDER BY round, standing_position;
+    """
+
+    rows = db.execute(text(sql), {"year": year, "top_n": top_n}).fetchall()
+
+    return {
+        "season": year,
+        "top_n": top_n,
+        "count": len(rows),
+        "data": [dict(row._mapping) for row in rows],
+    }
+
+
+# ---------------------------------------------------------
+# 1️⃣2️⃣ GET /analytics/teammate-battles/{year}
+# Compare teammates within the same season
+# ---------------------------------------------------------
+@router.get("/teammate-battles/{year}")
+def teammate_battles(
+    year: int,
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve teammate-vs-teammate battles for a season.
+    """
+
+    ensure_season_exists(year, db)
+
+    sql = """
+    WITH teammate_pairs AS (
+        SELECT
+            ra.year,
+            c.constructor_id,
+            c.name AS constructor_name,
+            d1.driver_id AS driver_1_id,
+            d1.code AS driver_1_code,
+            d1.forename AS driver_1_forename,
+            d1.surname AS driver_1_surname,
+            d2.driver_id AS driver_2_id,
+            d2.code AS driver_2_code,
+            d2.forename AS driver_2_forename,
+            d2.surname AS driver_2_surname,
+            COUNT(*) AS shared_races,
+            SUM(CASE
+                WHEN r1.position_order > 0 AND r2.position_order > 0 AND r1.position_order < r2.position_order
+                THEN 1 ELSE 0
+            END) AS driver_1_ahead_finishes,
+            SUM(CASE
+                WHEN r1.position_order > 0 AND r2.position_order > 0 AND r2.position_order < r1.position_order
+                THEN 1 ELSE 0
+            END) AS driver_2_ahead_finishes,
+            SUM(r1.points) AS driver_1_points,
+            SUM(r2.points) AS driver_2_points,
+            SUM(CASE WHEN r1.position_order = 1 THEN 1 ELSE 0 END) AS driver_1_wins,
+            SUM(CASE WHEN r2.position_order = 1 THEN 1 ELSE 0 END) AS driver_2_wins,
+            SUM(CASE WHEN r1.position_order IN (1, 2, 3) THEN 1 ELSE 0 END) AS driver_1_podiums,
+            SUM(CASE WHEN r2.position_order IN (1, 2, 3) THEN 1 ELSE 0 END) AS driver_2_podiums
+        FROM results r1
+        JOIN results r2
+          ON r1.race_id = r2.race_id
+         AND r1.constructor_id = r2.constructor_id
+         AND r1.driver_id < r2.driver_id
+        JOIN races ra ON ra.race_id = r1.race_id
+        JOIN constructors c ON c.constructor_id = r1.constructor_id
+        JOIN drivers d1 ON d1.driver_id = r1.driver_id
+        JOIN drivers d2 ON d2.driver_id = r2.driver_id
+        WHERE ra.year = :year
+        GROUP BY
+            ra.year,
+            c.constructor_id,
+            c.name,
+            d1.driver_id, d1.code, d1.forename, d1.surname,
+            d2.driver_id, d2.code, d2.forename, d2.surname
+    )
+    SELECT *
+    FROM teammate_pairs
+    ORDER BY shared_races DESC, ABS(driver_1_points - driver_2_points) ASC, constructor_name
+    LIMIT :limit;
+    """
+
+    rows = db.execute(text(sql), {"year": year, "limit": limit}).fetchall()
+
+    return {
+        "season": year,
+        "limit": limit,
+        "count": len(rows),
+        "data": [dict(row._mapping) for row in rows],
+    }
+
+
+# ---------------------------------------------------------
+# 1️⃣3️⃣ GET /analytics/driver-rivalries
+# All-time rivalry pairs
+# ---------------------------------------------------------
+@router.get("/driver-rivalries")
+def driver_rivalries(
+    limit: int = Query(20, ge=1, le=100),
+    min_shared_races: int = Query(10, ge=1, le=500),
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve all-time driver rivalries based on shared races and head-to-head finishes.
+    """
+
+    sql = """
+    WITH rivalry_pairs AS (
+        SELECT
+            d1.driver_id AS driver_1_id,
+            d1.code AS driver_1_code,
+            d1.forename AS driver_1_forename,
+            d1.surname AS driver_1_surname,
+            d2.driver_id AS driver_2_id,
+            d2.code AS driver_2_code,
+            d2.forename AS driver_2_forename,
+            d2.surname AS driver_2_surname,
+            COUNT(*) AS shared_races,
+            SUM(CASE
+                WHEN r1.position_order > 0 AND r2.position_order > 0 AND r1.position_order < r2.position_order
+                THEN 1 ELSE 0
+            END) AS driver_1_ahead_finishes,
+            SUM(CASE
+                WHEN r1.position_order > 0 AND r2.position_order > 0 AND r2.position_order < r1.position_order
+                THEN 1 ELSE 0
+            END) AS driver_2_ahead_finishes,
+            SUM(r1.points) AS driver_1_points,
+            SUM(r2.points) AS driver_2_points,
+            MIN(ra.year) AS first_shared_year,
+            MAX(ra.year) AS last_shared_year
+        FROM results r1
+        JOIN results r2
+          ON r1.race_id = r2.race_id
+         AND r1.driver_id < r2.driver_id
+        JOIN races ra ON ra.race_id = r1.race_id
+        JOIN drivers d1 ON d1.driver_id = r1.driver_id
+        JOIN drivers d2 ON d2.driver_id = r2.driver_id
+        GROUP BY
+            d1.driver_id, d1.code, d1.forename, d1.surname,
+            d2.driver_id, d2.code, d2.forename, d2.surname
+        HAVING COUNT(*) >= :min_shared_races
+    )
+    SELECT *
+    FROM rivalry_pairs
+    ORDER BY shared_races DESC,
+             ABS(driver_1_ahead_finishes - driver_2_ahead_finishes) ASC,
+             ABS(driver_1_points - driver_2_points) ASC,
+             driver_1_surname,
+             driver_2_surname
+    LIMIT :limit;
+    """
+
+    rows = db.execute(
+        text(sql),
+        {"limit": limit, "min_shared_races": min_shared_races},
+    ).fetchall()
+
+    return {
+        "limit": limit,
+        "min_shared_races": min_shared_races,
         "count": len(rows),
         "data": [dict(row._mapping) for row in rows],
     }
