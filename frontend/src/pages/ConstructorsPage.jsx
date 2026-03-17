@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import './DriversPage.css'
-import DriverDetailsPage from './DriverDetailsPage'
+import './ConstructorsPage.css'
+import ConstructorDetailsPage from './ConstructorDetailsPage'
 
-function DriversPage() {
-  const [drivers, setDrivers] = useState([])
+function ConstructorsPage() {
+  const [constructors, setConstructors] = useState([])
   const [standings, setStandings] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedDriverSlug, setSelectedDriverSlug] = useState(null)
+  const [selectedConstructorSlug, setSelectedConstructorSlug] = useState(null)
 
-  const [view, setView] = useState('current') // current | all-time | standings
+  const [view, setView] = useState('current')
   const [search, setSearch] = useState('')
   const [season, setSeason] = useState('2024')
   const [roundFilter, setRoundFilter] = useState('')
@@ -28,10 +28,10 @@ function DriversPage() {
   }, [])
 
   const nationalities = useMemo(() => {
-    const source = view === 'standings' ? standings : drivers
+    const source = view === 'standings' ? standings : constructors
     const unique = [...new Set(source.map((item) => item.nationality).filter(Boolean))]
     return unique.sort()
-  }, [drivers, standings, view])
+  }, [constructors, standings, view])
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -49,7 +49,7 @@ function DriversPage() {
       let url = ''
 
       if (view === 'current') {
-        url = 'http://127.0.0.1:8000/drivers/current'
+        url = 'http://127.0.0.1:8000/constructors/current'
       } else if (view === 'all-time') {
         const params = new URLSearchParams()
         params.append('limit', '200')
@@ -62,7 +62,7 @@ function DriversPage() {
           params.append('nationality', nationalityFilter)
         }
 
-        url = `http://127.0.0.1:8000/drivers?${params.toString()}`
+        url = `http://127.0.0.1:8000/constructors?${params.toString()}`
       } else if (view === 'standings') {
         const params = new URLSearchParams()
 
@@ -72,8 +72,8 @@ function DriversPage() {
 
         const queryString = params.toString()
         url = queryString
-          ? `http://127.0.0.1:8000/drivers/standings/${season}?${queryString}`
-          : `http://127.0.0.1:8000/drivers/standings/${season}`
+          ? `http://127.0.0.1:8000/constructors/standings/${season}?${queryString}`
+          : `http://127.0.0.1:8000/constructors/standings/${season}`
       }
 
       const response = await fetch(url)
@@ -85,9 +85,9 @@ function DriversPage() {
 
       if (view === 'standings') {
         setStandings(data.data || [])
-        setDrivers([])
+        setConstructors([])
       } else {
-        setDrivers(data.data || [])
+        setConstructors(data.data || [])
         setStandings([])
       }
     } catch (err) {
@@ -97,84 +97,78 @@ function DriversPage() {
     }
   }
 
-  const filteredDrivers = useMemo(() => {
+  const filteredConstructors = useMemo(() => {
     if (view === 'all-time') {
-      return drivers
+      return constructors
     }
 
-    return drivers.filter((driver) => {
-      const fullName = `${driver.forename} ${driver.surname}`.toLowerCase()
-      const code = (driver.code || '').toLowerCase()
-      const nationality = (driver.nationality || '').toLowerCase()
+    return constructors.filter((constructor) => {
+      const name = (constructor.name || '').toLowerCase()
+      const nationality = (constructor.nationality || '').toLowerCase()
       const term = search.toLowerCase()
 
       const matchesSearch =
-        fullName.includes(term) ||
-        code.includes(term) ||
-        nationality.includes(term)
+        name.includes(term) || nationality.includes(term)
 
       const matchesNationality =
-        !nationalityFilter || driver.nationality === nationalityFilter
+        !nationalityFilter || constructor.nationality === nationalityFilter
 
       return matchesSearch && matchesNationality
     })
-  }, [drivers, search, view, nationalityFilter])
+  }, [constructors, search, view, nationalityFilter])
 
   const filteredStandings = useMemo(() => {
-    return standings.filter((driver) => {
-      const fullName = `${driver.forename} ${driver.surname}`.toLowerCase()
-      const code = (driver.code || '').toLowerCase()
-      const nationality = (driver.nationality || '').toLowerCase()
+    return standings.filter((constructor) => {
+      const name = (constructor.name || '').toLowerCase()
+      const nationality = (constructor.nationality || '').toLowerCase()
       const term = search.toLowerCase()
 
       const matchesSearch =
-        fullName.includes(term) ||
-        code.includes(term) ||
-        nationality.includes(term)
+        name.includes(term) || nationality.includes(term)
 
       const matchesNationality =
-        !nationalityFilter || driver.nationality === nationalityFilter
+        !nationalityFilter || constructor.nationality === nationalityFilter
 
       return matchesSearch && matchesNationality
     })
   }, [standings, search, nationalityFilter])
 
   const getHeaderTitle = () => {
-    if (view === 'current') return 'Current Drivers'
-    if (view === 'all-time') return 'All-Time Drivers'
+    if (view === 'current') return 'Current Constructors'
+    if (view === 'all-time') return 'All-Time Constructors'
     return roundFilter
-      ? `Driver Standings - ${season} (After Round ${roundFilter})`
-      : `Driver Standings - ${season}`
+      ? `Constructor Standings - ${season} (After Round ${roundFilter})`
+      : `Constructor Standings - ${season}`
   }
 
   const getHeaderText = () => {
     if (view === 'current') {
-      return 'Explore the active Formula 1 drivers currently represented in your backend API.'
+      return 'Explore the active Formula 1 constructors currently represented in your backend API.'
     }
     if (view === 'all-time') {
-      return 'Browse the historical driver database and explore the full Formula 1 archive.'
+      return 'Browse the historical constructor database and explore Formula 1 team history.'
     }
-    return 'View season standings in a clean, interactive format, including round-by-round progression.'
+    return 'View constructor standings with season and round-based progression.'
   }
 
-  if (selectedDriverSlug) {
+  if (selectedConstructorSlug) {
     return (
-      <DriverDetailsPage
-        driverSlug={selectedDriverSlug}
-        goBack={() => setSelectedDriverSlug(null)}
+      <ConstructorDetailsPage
+        constructorSlug={selectedConstructorSlug}
+        goBack={() => setSelectedConstructorSlug(null)}
       />
     )
   }
 
   return (
-    <div className="drivers-page">
-      <div className="drivers-header">
+    <div className="constructors-page">
+      <div className="constructors-header">
         <h2>{getHeaderTitle()}</h2>
         <p>{getHeaderText()}</p>
       </div>
 
-      <div className="drivers-controls">
-        <div className="drivers-tabs">
+      <div className="constructors-controls">
+        <div className="constructors-tabs">
           <button
             className={view === 'current' ? 'tab-btn active-tab' : 'tab-btn'}
             onClick={() => setView('current')}
@@ -197,19 +191,19 @@ function DriversPage() {
           </button>
         </div>
 
-        <div className="drivers-filters">
+        <div className="constructors-filters">
           <input
             type="text"
-            placeholder="Search by name, code, nationality..."
+            placeholder="Search by team name or nationality..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="drivers-search"
+            className="constructors-search"
           />
 
           <select
             value={nationalityFilter}
             onChange={(e) => setNationalityFilter(e.target.value)}
-            className="drivers-select"
+            className="constructors-select"
           >
             <option value="">All Nationalities</option>
             {nationalities.map((nationality) => (
@@ -224,7 +218,7 @@ function DriversPage() {
               <select
                 value={season}
                 onChange={(e) => setSeason(e.target.value)}
-                className="drivers-select"
+                className="constructors-select"
               >
                 {years.map((year) => (
                   <option key={year} value={year}>
@@ -236,7 +230,7 @@ function DriversPage() {
               <select
                 value={roundFilter}
                 onChange={(e) => setRoundFilter(e.target.value)}
-                className="drivers-select"
+                className="constructors-select"
               >
                 <option value="">All Rounds</option>
                 {rounds.map((round) => (
@@ -250,38 +244,34 @@ function DriversPage() {
         </div>
       </div>
 
-      {loading && <p className="drivers-message">Loading data...</p>}
-      {error && <p className="drivers-message error">{error}</p>}
+      {loading && <p className="constructors-message">Loading data...</p>}
+      {error && <p className="constructors-message error">{error}</p>}
 
       {!loading && !error && view !== 'standings' && (
-        <div className="drivers-grid">
-          {filteredDrivers.map((driver) => (
+        <div className="constructors-grid">
+          {filteredConstructors.map((constructor) => (
             <div
-              key={driver.driver_id}
-              className="driver-card clickable-card"
-              onClick={() => setSelectedDriverSlug(driver.driver_slug)}
+              key={constructor.constructor_id}
+              className="constructor-card clickable-card"
+              onClick={() => setSelectedConstructorSlug(constructor.constructor_slug)}
             >
-              <div className="driver-top-line"></div>
+              <div className="constructor-card-top-line"></div>
 
-              <div className="driver-card-header">
-                <h3>
-                  {driver.forename} {driver.surname}
-                </h3>
-                {driver.code && <span className="driver-code-badge">{driver.code}</span>}
+              <div className="constructor-card-header">
+                <h3>{constructor.name}</h3>
               </div>
 
-              <p><strong>Nationality:</strong> {driver.nationality || 'N/A'}</p>
-              <p><strong>Date of Birth:</strong> {driver.dob || 'N/A'}</p>
-              <p><strong>Slug:</strong> {driver.driver_slug}</p>
+              <p><strong>Nationality:</strong> {constructor.nationality || 'N/A'}</p>
+              <p><strong>Slug:</strong> {constructor.constructor_slug}</p>
 
               <button
-                className="driver-view-btn"
+                className="constructor-view-btn"
                 onClick={(e) => {
                   e.stopPropagation()
-                  setSelectedDriverSlug(driver.driver_slug)
+                  setSelectedConstructorSlug(constructor.constructor_slug)
                 }}
               >
-                View Driver
+                View Constructor
               </button>
             </div>
           ))}
@@ -289,13 +279,12 @@ function DriversPage() {
       )}
 
       {!loading && !error && view === 'standings' && (
-        <div className="standings-wrapper">
-          <table className="standings-table">
+        <div className="constructors-standings-wrapper">
+          <table className="constructors-standings-table">
             <thead>
               <tr>
                 <th>Pos</th>
-                <th>Driver</th>
-                <th>Code</th>
+                <th>Constructor</th>
                 <th>Nationality</th>
                 <th>Points</th>
                 <th>Wins</th>
@@ -304,20 +293,19 @@ function DriversPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredStandings.map((driver) => (
+              {filteredStandings.map((constructor) => (
                 <tr
-                  key={driver.driver_id}
-                  className="standings-row"
-                  onClick={() => setSelectedDriverSlug(driver.driver_slug)}
+                  key={constructor.constructor_id}
+                  className="constructors-standings-row"
+                  onClick={() => setSelectedConstructorSlug(constructor.constructor_slug)}
                 >
-                  <td>{driver.position}</td>
-                  <td>{driver.forename} {driver.surname}</td>
-                  <td>{driver.code || 'N/A'}</td>
-                  <td>{driver.nationality || 'N/A'}</td>
-                  <td>{driver.points}</td>
-                  <td>{driver.wins}</td>
-                  <td>{driver.podiums}</td>
-                  <td>{driver.race_entries}</td>
+                  <td>{constructor.position}</td>
+                  <td>{constructor.name}</td>
+                  <td>{constructor.nationality || 'N/A'}</td>
+                  <td>{constructor.points}</td>
+                  <td>{constructor.wins}</td>
+                  <td>{constructor.podiums}</td>
+                  <td>{constructor.race_entries}</td>
                 </tr>
               ))}
             </tbody>
@@ -328,4 +316,4 @@ function DriversPage() {
   )
 }
 
-export default DriversPage
+export default ConstructorsPage

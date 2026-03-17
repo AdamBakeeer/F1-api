@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import './App.css'
 import DriversPage from './pages/DriversPage'
+import ConstructorsPage from './pages/ConstructorsPage'
+import RacesPage from './pages/RacesPage'
 
 function App() {
   const [drivers, setDrivers] = useState([])
@@ -28,8 +30,8 @@ function App() {
 
         <div className="nav-links">
           <button onClick={() => setPage('drivers')}>Drivers</button>
-          <a href="#">Constructors</a>
-          <a href="#">Circuits</a>
+          <button onClick={() => setPage('constructors')}>Constructors</button>
+          <button onClick={() => setPage('races')}>Races</button>
           <a href="#">Races</a>
           <a href="#">Analytics</a>
           <button className="login-btn">Login</button>
@@ -71,6 +73,8 @@ function App() {
       )}
 
       {page === 'drivers' && <DriversPage />}
+      {page === 'constructors' && <ConstructorsPage />}
+      {page === 'races' && <RacesPage />}
     </div>
   )
 }

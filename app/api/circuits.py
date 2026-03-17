@@ -1,12 +1,36 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+
 from app.db.database import get_db
+from app.core.deps import require_admin
 
 # ---------------------------------------------------------
 # Router configuration
 # ---------------------------------------------------------
 router = APIRouter(prefix="/circuits", tags=["Circuits"])
+
+
+# ---------------------------------------------------------
+# Schemas for admin CRUD
+# ---------------------------------------------------------
+class CircuitCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=150)
+    location: str | None = Field(default=None, max_length=150)
+    country: str | None = Field(default=None, max_length=150)
+    lat: float | None = None
+    lng: float | None = None
+    alt: int | None = None
+
+
+class CircuitUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=150)
+    location: str | None = Field(default=None, max_length=150)
+    country: str | None = Field(default=None, max_length=150)
+    lat: float | None = None
+    lng: float | None = None
+    alt: int | None = None
 
 
 # ---------------------------------------------------------
@@ -88,7 +112,51 @@ def list_circuits(
 
 
 # ---------------------------------------------------------
-# 2️⃣ GET /circuits/current
+# 2️⃣ POST /circuits
+# Create a new circuit (admin only)
+# ---------------------------------------------------------
+@router.post("/", status_code=status.HTTP_201_CREATED)
+def create_circuit(
+    payload: CircuitCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    """
+    Create a new circuit.
+    Admin only.
+    """
+
+    new_circuit_id = db.execute(
+        text("SELECT COALESCE(MAX(circuit_id), 0) + 1 AS next_id FROM circuits")
+    ).scalar()
+
+    row = db.execute(
+        text("""
+            INSERT INTO circuits (circuit_id, name, location, country, lat, lng, alt)
+            VALUES (:circuit_id, :name, :location, :country, :lat, :lng, :alt)
+            RETURNING circuit_id, name, location, country, lat, lng, alt
+        """),
+        {
+            "circuit_id": new_circuit_id,
+            "name": payload.name,
+            "location": payload.location,
+            "country": payload.country,
+            "lat": payload.lat,
+            "lng": payload.lng,
+            "alt": payload.alt,
+        },
+    ).fetchone()
+
+    db.commit()
+
+    return {
+        "message": "Circuit created successfully",
+        "data": dict(row._mapping),
+    }
+
+
+# ---------------------------------------------------------
+# 3️⃣ GET /circuits/current
 # Returns circuits used in the latest season
 # ---------------------------------------------------------
 @router.get("/current")
@@ -120,7 +188,7 @@ def current_circuits(db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------
-# 3️⃣ GET /circuits/season/{year}
+# 4️⃣ GET /circuits/season/{year}
 # Returns circuits used in a specific season
 # ---------------------------------------------------------
 @router.get("/season/{year}")
@@ -149,7 +217,7 @@ def circuits_by_season(year: int, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------
-# 4️⃣ GET /circuits/{circuit_id}/stats
+# 5️⃣ GET /circuits/{circuit_id}/stats
 # Summary statistics for a circuit
 # ---------------------------------------------------------
 @router.get("/{circuit_id}/stats")
@@ -189,7 +257,7 @@ def circuit_stats(circuit_id: int, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------
-# 5️⃣ GET /circuits/{circuit_id}/races
+# 6️⃣ GET /circuits/{circuit_id}/races
 # Returns all races hosted at this circuit
 # ---------------------------------------------------------
 @router.get("/{circuit_id}/races")
@@ -238,7 +306,7 @@ def circuit_races(
 
 
 # ---------------------------------------------------------
-# 6️⃣ GET /circuits/{circuit_id}/winners
+# 7️⃣ GET /circuits/{circuit_id}/winners
 # Returns race winners at this circuit by season
 # ---------------------------------------------------------
 @router.get("/{circuit_id}/winners")
@@ -280,7 +348,7 @@ def circuit_winners(circuit_id: int, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------
-# 7️⃣ GET /circuits/{circuit_id}/top-drivers
+# 8️⃣ GET /circuits/{circuit_id}/top-drivers
 # Best-performing drivers at this circuit
 # ---------------------------------------------------------
 @router.get("/{circuit_id}/top-drivers")
@@ -332,7 +400,7 @@ def circuit_top_drivers(
 
 
 # ---------------------------------------------------------
-# 8️⃣ GET /circuits/{circuit_id}/top-constructors
+# 9️⃣ GET /circuits/{circuit_id}/top-constructors
 # Best-performing constructors at this circuit
 # ---------------------------------------------------------
 @router.get("/{circuit_id}/top-constructors")
@@ -382,7 +450,111 @@ def circuit_top_constructors(
 
 
 # ---------------------------------------------------------
-# 9️⃣ GET /circuits/{circuit_id}
+# 🔟 PATCH /circuits/{circuit_id}
+# Update an existing circuit (admin only)
+# ---------------------------------------------------------
+@router.patch("/{circuit_id}")
+def update_circuit(
+    circuit_id: int,
+    payload: CircuitUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    """
+    Update a circuit.
+    Admin only.
+    """
+
+    ensure_circuit_exists(circuit_id, db)
+
+    existing = db.execute(
+        text("""
+            SELECT circuit_id, name, location, country, lat, lng, alt
+            FROM circuits
+            WHERE circuit_id = :circuit_id
+        """),
+        {"circuit_id": circuit_id},
+    ).fetchone()
+
+    existing_data = dict(existing._mapping)
+
+    updated_data = {
+        "circuit_id": circuit_id,
+        "name": payload.name if payload.name is not None else existing_data["name"],
+        "location": payload.location if payload.location is not None else existing_data["location"],
+        "country": payload.country if payload.country is not None else existing_data["country"],
+        "lat": payload.lat if payload.lat is not None else existing_data["lat"],
+        "lng": payload.lng if payload.lng is not None else existing_data["lng"],
+        "alt": payload.alt if payload.alt is not None else existing_data["alt"],
+    }
+
+    row = db.execute(
+        text("""
+            UPDATE circuits
+            SET name = :name,
+                location = :location,
+                country = :country,
+                lat = :lat,
+                lng = :lng,
+                alt = :alt
+            WHERE circuit_id = :circuit_id
+            RETURNING circuit_id, name, location, country, lat, lng, alt
+        """),
+        updated_data,
+    ).fetchone()
+
+    db.commit()
+
+    return {
+        "message": "Circuit updated successfully",
+        "data": dict(row._mapping),
+    }
+
+
+# ---------------------------------------------------------
+# 1️⃣1️⃣ DELETE /circuits/{circuit_id}
+# Delete a circuit (admin only)
+# ---------------------------------------------------------
+@router.delete("/{circuit_id}")
+def delete_circuit(
+    circuit_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_admin),
+):
+    """
+    Delete a circuit.
+    Admin only.
+
+    Prevent deletion if related races exist.
+    """
+
+    ensure_circuit_exists(circuit_id, db)
+
+    dependency_count = db.execute(
+        text("SELECT COUNT(*) FROM races WHERE circuit_id = :circuit_id"),
+        {"circuit_id": circuit_id},
+    ).scalar()
+
+    if dependency_count and dependency_count > 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete circuit because related races exist",
+        )
+
+    db.execute(
+        text("DELETE FROM circuits WHERE circuit_id = :circuit_id"),
+        {"circuit_id": circuit_id},
+    )
+    db.commit()
+
+    return {
+        "message": "Circuit deleted successfully",
+        "circuit_id": circuit_id,
+    }
+
+
+# ---------------------------------------------------------
+# 1️⃣2️⃣ GET /circuits/{circuit_id}
 # Returns a single circuit by ID
 # ---------------------------------------------------------
 @router.get("/{circuit_id}")

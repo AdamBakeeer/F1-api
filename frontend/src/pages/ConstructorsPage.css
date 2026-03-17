@@ -1,0 +1,161 @@
+.constructors-page {
+  padding: 60px 0 100px;
+}
+
+.constructors-header {
+  text-align: center;
+  margin-bottom: 35px;
+}
+
+.constructors-header h2 {
+  font-size: 42px;
+  margin-bottom: 12px;
+}
+
+.constructors-header p {
+  color: #bbb;
+  font-size: 18px;
+}
+
+.constructors-message {
+  text-align: center;
+  color: #bbb;
+  font-size: 18px;
+}
+
+.constructors-message.error {
+  color: #ff4d4d;
+}
+
+.constructors-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 35px;
+  flex-wrap: wrap;
+}
+
+.constructors-tabs {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.constructors-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.constructors-search,
+.constructors-select {
+  background: #111;
+  border: 1px solid #2a2a2a;
+  color: white;
+  padding: 12px 14px;
+  border-radius: 8px;
+  outline: none;
+}
+
+.constructors-search {
+  min-width: 280px;
+}
+
+.constructors-search:focus,
+.constructors-select:focus {
+  border-color: #ff5a1f;
+}
+
+.constructors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 24px;
+}
+
+.constructor-card {
+  background: linear-gradient(135deg, #111, #171717);
+  border: 1px solid #222;
+  border-radius: 14px;
+  padding: 22px;
+  transition: 0.2s ease;
+}
+
+.constructor-card:hover {
+  transform: translateY(-4px);
+  border-color: #ff5a1f;
+}
+
+.constructor-card-top-line {
+  height: 4px;
+  width: 100%;
+  background: #ff5a1f;
+  border-radius: 6px;
+  margin-bottom: 18px;
+}
+
+.constructor-card-header {
+  margin-bottom: 12px;
+}
+
+.constructor-card h3 {
+  font-size: 24px;
+}
+
+.constructor-card p {
+  color: #d0d0d0;
+  margin-bottom: 8px;
+}
+
+.constructor-view-btn {
+  margin-top: 16px;
+  background: transparent;
+  border: 1px solid #ff5a1f;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.constructor-view-btn:hover {
+  background: #ff5a1f;
+}
+
+.constructors-standings-wrapper {
+  overflow-x: auto;
+}
+
+.constructors-standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.constructors-standings-table th,
+.constructors-standings-table td {
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid #222;
+}
+
+.constructors-standings-table th {
+  background: #181818;
+  color: white;
+}
+
+.constructors-standings-table td {
+  color: #ddd;
+}
+
+.constructors-standings-row {
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.constructors-standings-row:hover {
+  background: #181818;
+}

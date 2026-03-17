@@ -1,0 +1,145 @@
+.constructor-details-page {
+  padding: 50px 0 100px;
+}
+
+.constructor-details-message {
+  text-align: center;
+  color: #bbb;
+  font-size: 18px;
+}
+
+.constructor-details-message.error {
+  color: #ff4d4d;
+}
+
+.constructor-profile-card {
+  background: linear-gradient(135deg, #101010, #161616);
+  border: 1px solid #262626;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 40px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+.constructor-profile-top-line {
+  height: 4px;
+  width: 100%;
+  background: #ff5a1f;
+  border-radius: 6px;
+  margin-bottom: 18px;
+}
+
+.constructor-profile-card h2 {
+  font-size: 34px;
+  margin-bottom: 16px;
+}
+
+.constructor-profile-card p {
+  color: #d0d0d0;
+  margin-bottom: 8px;
+}
+
+.constructor-stats-section,
+.constructor-data-section {
+  margin-bottom: 50px;
+}
+
+.constructor-stats-section h3,
+.constructor-data-section h3 {
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+.constructor-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 18px;
+}
+
+.constructor-stat-box {
+  background: linear-gradient(180deg, #121212, #0f0f0f);
+  border: 1px solid #222;
+  border-top: 4px solid #ff5a1f;
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.constructor-stat-box span {
+  display: block;
+  color: #aaa;
+  margin-bottom: 10px;
+}
+
+.constructor-stat-box strong {
+  font-size: 24px;
+  color: white;
+}
+
+.constructor-table-wrapper {
+  overflow-x: auto;
+}
+
+.constructor-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #111;
+  border: 1px solid #222;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.constructor-table th,
+.constructor-table td {
+  padding: 14px;
+  text-align: left;
+  border-bottom: 1px solid #222;
+}
+
+.constructor-table th {
+  background: #181818;
+  color: white;
+}
+
+.constructor-table td {
+  color: #ddd;
+}
+
+.constructor-section-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.constructor-circuit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.constructor-circuit-card {
+  background: linear-gradient(135deg, #111, #171717);
+  border: 1px solid #242424;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.constructor-circuit-top-line {
+  height: 4px;
+  width: 100%;
+  background: #ff5a1f;
+  border-radius: 6px;
+  margin-bottom: 14px;
+}
+
+.constructor-circuit-card h4 {
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+
+.constructor-circuit-card p {
+  color: #d7d7d7;
+  margin-bottom: 8px;
+}
