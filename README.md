@@ -167,6 +167,9 @@ The backend API is deployed using Render, making it accessible via a public URL.
 
 This allows real-world interaction with the API, including authentication, data retrieval, and admin operations, beyond a local development environment.
 
+Frontend Deployment: https://f1-api-2.onrender.com
+Backend Deployment: https://f1-api-a0i8.onrender.com
+
 ---
 
 ## 🔮 Future Improvements
