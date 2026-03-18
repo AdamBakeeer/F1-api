@@ -56,7 +56,7 @@ The system follows a layered architecture to ensure separation of concerns and m
 
 ### 1. Clone the repository
 
-git clone https://github.com/YOUR_USERNAME/F1-api.git  
+git clone https://github.com/adambakeeer/F1-api.git  
 cd F1-api  
 
 ---
