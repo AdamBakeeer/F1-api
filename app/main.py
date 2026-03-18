@@ -20,10 +20,12 @@ except Exception as e:
     pass
 
 # Configure CORS based on environment
-allowed_origins = os.getenv(
-    "ALLOWED_ORIGINS",
-    "http://localhost:5173,http://127.0.0.1:5173"
-).split(",")
+allowed_origins = [
+    origin.strip() for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+]
 
 app.add_middleware(
     CORSMiddleware,
