@@ -29,7 +29,7 @@ FastAPI Backend (API Layer)
 ↓  
 JWT Authentication  
 ↓  
-SQLite Database  
+PostgreSQL Database
 
 The system follows a layered architecture to ensure separation of concerns and maintainability.
 
