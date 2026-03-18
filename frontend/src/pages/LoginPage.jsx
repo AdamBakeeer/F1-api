@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './Auth.css'
 
 function LoginPage({ onLoginSuccess, goToSignup, goHome }) {
@@ -26,8 +27,8 @@ function LoginPage({ onLoginSuccess, goToSignup, goHome }) {
 
       const endpoint =
         mode === 'admin'
-          ? 'http://127.0.0.1:8000/auth/admin/login'
-          : 'http://127.0.0.1:8000/auth/login'
+          ? `${API_BASE_URL}/auth/admin/login`
+          : `${API_BASE_URL}/auth/login`
 
       const payload =
         mode === 'admin'

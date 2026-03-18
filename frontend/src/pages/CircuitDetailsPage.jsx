@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './CircuitDetailsPage.css'
 
 function CircuitDetailsPage({ circuitSlug, goBack, token, currentUser }) {
@@ -45,12 +46,12 @@ function CircuitDetailsPage({ circuitSlug, goBack, token, currentUser }) {
         topDriversRes,
         topConstructorsRes
       ] = await Promise.all([
-        fetch(`http://127.0.0.1:8000/circuits/${circuitSlug}`),
-        fetch(`http://127.0.0.1:8000/circuits/${circuitSlug}/stats`),
-        fetch(`http://127.0.0.1:8000/circuits/${circuitSlug}/races`),
-        fetch(`http://127.0.0.1:8000/circuits/${circuitSlug}/winners`),
-        fetch(`http://127.0.0.1:8000/circuits/${circuitSlug}/top-drivers?limit=8`),
-        fetch(`http://127.0.0.1:8000/circuits/${circuitSlug}/top-constructors?limit=8`)
+        fetch(`${API_BASE_URL}/circuits/${circuitSlug}`),
+        fetch(`${API_BASE_URL}/circuits/${circuitSlug}/stats`),
+        fetch(`${API_BASE_URL}/circuits/${circuitSlug}/races`),
+        fetch(`${API_BASE_URL}/circuits/${circuitSlug}/winners`),
+        fetch(`${API_BASE_URL}/circuits/${circuitSlug}/top-drivers?limit=8`),
+        fetch(`${API_BASE_URL}/circuits/${circuitSlug}/top-constructors?limit=8`)
       ])
 
       const circuitData = await circuitRes.json()
@@ -82,7 +83,7 @@ function CircuitDetailsPage({ circuitSlug, goBack, token, currentUser }) {
 
   const checkFavoriteStatus = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/favorites/', {
+      const response = await fetch(`${API_BASE_URL}/favorites/`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -104,7 +105,7 @@ function CircuitDetailsPage({ circuitSlug, goBack, token, currentUser }) {
       setFavoriteError('')
       setFavoriteMessage('')
 
-      const response = await fetch(`http://127.0.0.1:8000/favorites/circuits/${circuitSlug}`, {
+      const response = await fetch(`${API_BASE_URL}/favorites/circuits/${circuitSlug}`, {
         method: isFavorite ? 'DELETE' : 'POST',
         headers: {
           Authorization: `Bearer ${token}`

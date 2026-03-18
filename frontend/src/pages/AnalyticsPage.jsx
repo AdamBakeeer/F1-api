@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './AnalyticsPage.css'
 
 function AnalyticsPage() {
@@ -51,18 +52,18 @@ function AnalyticsPage() {
         teammateRes,
         rivalriesRes
       ] = await Promise.all([
-        fetch('http://127.0.0.1:8000/analytics/dnfs/by-season'),
-        fetch(`http://127.0.0.1:8000/analytics/most-successful-drivers?metric=${metric}&limit=10`),
-        fetch(`http://127.0.0.1:8000/analytics/most-successful-constructors?metric=${metric}&limit=10`),
-        fetch(`http://127.0.0.1:8000/analytics/circuit-specialists?metric=${metric}&limit=10`),
-        fetch(`http://127.0.0.1:8000/analytics/championship-battles/${season}?top_n=5`),
-        fetch('http://127.0.0.1:8000/analytics/closest-title-fights?limit=10'),
-        fetch('http://127.0.0.1:8000/analytics/comeback-drivers?limit=10&min_races=20'),
-        fetch('http://127.0.0.1:8000/analytics/constructors-by-era?limit=30'),
-        fetch('http://127.0.0.1:8000/analytics/circuit-difficulty?limit=10&min_races=3'),
-        fetch(`http://127.0.0.1:8000/analytics/title-fight-progression/${season}?top_n=3`),
-        fetch(`http://127.0.0.1:8000/analytics/teammate-battles/${season}?limit=20`),
-        fetch('http://127.0.0.1:8000/analytics/driver-rivalries?limit=20&min_shared_races=10')
+        fetch(`${API_BASE_URL}/analytics/dnfs/by-season`),
+        fetch(`${API_BASE_URL}/analytics/most-successful-drivers?metric=${metric}&limit=10`),
+        fetch(`${API_BASE_URL}/analytics/most-successful-constructors?metric=${metric}&limit=10`),
+        fetch(`${API_BASE_URL}/analytics/circuit-specialists?metric=${metric}&limit=10`),
+        fetch(`${API_BASE_URL}/analytics/championship-battles/${season}?top_n=5`),
+        fetch(`${API_BASE_URL}/analytics/closest-title-fights?limit=10`),
+        fetch(`${API_BASE_URL}/analytics/comeback-drivers?limit=10&min_races=20`),
+        fetch(`${API_BASE_URL}/analytics/constructors-by-era?limit=30`),
+        fetch(`${API_BASE_URL}/analytics/circuit-difficulty?limit=10&min_races=3`),
+        fetch(`${API_BASE_URL}/analytics/title-fight-progression/${season}?top_n=3`),
+        fetch(`${API_BASE_URL}/analytics/teammate-battles/${season}?limit=20`),
+        fetch(`${API_BASE_URL}/analytics/driver-rivalries?limit=20&min_shared_races=10`)
       ])
 
       const [

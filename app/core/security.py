@@ -1,17 +1,20 @@
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-SECRET_KEY = "change-this-to-a-long-random-secret-key"
+# Get secrets from environment variables
+SECRET_KEY = os.getenv("SECRET_KEY", "change-this-to-a-long-random-secret-key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-ADMIN_USERNAME = "admin@gmail.com"
-ADMIN_PASSWORD = "admin1234"
+# Get admin credentials from environment variables
+ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin@gmail.com")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin1234")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:

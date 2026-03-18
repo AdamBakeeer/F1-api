@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './ConstructorsPage.css'
 import ConstructorDetailsPage from './ConstructorDetailsPage'
 
@@ -49,7 +50,7 @@ function ConstructorsPage({ token, currentUser }) {
       let url = ''
 
       if (view === 'current') {
-        url = 'http://127.0.0.1:8000/constructors/current'
+        url = `${API_BASE_URL}/constructors/current`
       } else if (view === 'all-time') {
         const params = new URLSearchParams()
         params.append('limit', '200')
@@ -57,7 +58,7 @@ function ConstructorsPage({ token, currentUser }) {
         if (search.trim()) params.append('q', search.trim())
         if (nationalityFilter) params.append('nationality', nationalityFilter)
 
-        url = `http://127.0.0.1:8000/constructors?${params.toString()}`
+        url = `${API_BASE_URL}/constructors?${params.toString()}`
       } else if (view === 'standings') {
         const params = new URLSearchParams()
 
@@ -67,8 +68,8 @@ function ConstructorsPage({ token, currentUser }) {
 
         const queryString = params.toString()
         url = queryString
-          ? `http://127.0.0.1:8000/constructors/standings/${season}?${queryString}`
-          : `http://127.0.0.1:8000/constructors/standings/${season}`
+          ? `${API_BASE_URL}/constructors/standings/${season}?${queryString}`
+          : `${API_BASE_URL}/constructors/standings/${season}`
       }
 
       const response = await fetch(url)

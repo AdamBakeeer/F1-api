@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './CircuitsPage.css'
 import CircuitDetailsPage from './CircuitDetailsPage'
 
@@ -40,9 +41,9 @@ function CircuitsPage({ token, currentUser }) {
       let url = ''
 
       if (view === 'current') {
-        url = 'http://127.0.0.1:8000/circuits/current'
+        url = `${API_BASE_URL}/circuits/current`
       } else if (view === 'season') {
-        url = `http://127.0.0.1:8000/circuits/season/${season}`
+        url = `${API_BASE_URL}/circuits/season/${season}`
       } else {
         const params = new URLSearchParams()
         params.append('limit', '200')
@@ -50,7 +51,7 @@ function CircuitsPage({ token, currentUser }) {
         if (search.trim()) params.append('q', search.trim())
         if (countryFilter) params.append('country', countryFilter)
 
-        url = `http://127.0.0.1:8000/circuits?${params.toString()}`
+        url = `${API_BASE_URL}/circuits?${params.toString()}`
       }
 
       const response = await fetch(url)

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { API_BASE_URL } from './config.js'
 import './App.css'
 import DriversPage from './pages/DriversPage'
 import ConstructorsPage from './pages/ConstructorsPage'
@@ -41,7 +42,7 @@ function App() {
     setLoading(true)
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/drivers/current')
+      const response = await fetch(`${API_BASE_URL}/drivers/current`)
       const data = await response.json()
       setDrivers(data.data || [])
     } catch (error) {

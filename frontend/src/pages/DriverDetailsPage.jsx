@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './DriverDetailsPage.css'
 
 function DriverDetailsPage({ driverSlug, goBack, token, currentUser }) {
@@ -55,13 +56,13 @@ function DriverDetailsPage({ driverSlug, goBack, token, currentUser }) {
         circuitsRes,
         dnfsRes
       ] = await Promise.all([
-        fetch(`http://127.0.0.1:8000/drivers/${driverSlug}`),
-        fetch(`http://127.0.0.1:8000/drivers/${driverSlug}/stats`),
-        fetch(`http://127.0.0.1:8000/drivers/${driverSlug}/results?limit=10`),
-        fetch(`http://127.0.0.1:8000/drivers/${driverSlug}/seasons`),
-        fetch(`http://127.0.0.1:8000/drivers/${driverSlug}/teams`),
-        fetch(`http://127.0.0.1:8000/drivers/${driverSlug}/best-circuits?limit=5`),
-        fetch(`http://127.0.0.1:8000/drivers/${driverSlug}/dnfs`)
+        fetch(`${API_BASE_URL}/drivers/${driverSlug}`),
+        fetch(`${API_BASE_URL}/drivers/${driverSlug}/stats`),
+        fetch(`${API_BASE_URL}/drivers/${driverSlug}/results?limit=10`),
+        fetch(`${API_BASE_URL}/drivers/${driverSlug}/seasons`),
+        fetch(`${API_BASE_URL}/drivers/${driverSlug}/teams`),
+        fetch(`${API_BASE_URL}/drivers/${driverSlug}/best-circuits?limit=5`),
+        fetch(`${API_BASE_URL}/drivers/${driverSlug}/dnfs`)
       ])
 
       const driverData = await driverRes.json()
@@ -101,7 +102,7 @@ function DriverDetailsPage({ driverSlug, goBack, token, currentUser }) {
 
   const fetchTeammates = async () => {
     try {
-      let url = `http://127.0.0.1:8000/drivers/${driverSlug}/teammates`
+      let url = `${API_BASE_URL}/drivers/${driverSlug}/teammates`
 
       if (selectedSeason) {
         url += `?year=${selectedSeason}`
@@ -122,7 +123,7 @@ function DriverDetailsPage({ driverSlug, goBack, token, currentUser }) {
 
   const checkFavoriteStatus = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/favorites/', {
+      const response = await fetch(`${API_BASE_URL}/favorites/`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -148,7 +149,7 @@ function DriverDetailsPage({ driverSlug, goBack, token, currentUser }) {
 
       const method = isFavorite ? 'DELETE' : 'POST'
 
-      const response = await fetch(`http://127.0.0.1:8000/favorites/drivers/${driverSlug}`, {
+      const response = await fetch(`${API_BASE_URL}/favorites/drivers/${driverSlug}`, {
         method,
         headers: {
           Authorization: `Bearer ${token}`

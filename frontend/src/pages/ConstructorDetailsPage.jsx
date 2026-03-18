@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './ConstructorDetailsPage.css'
 
 function ConstructorDetailsPage({ constructorSlug, goBack, token, currentUser }) {
@@ -35,10 +36,10 @@ function ConstructorDetailsPage({ constructorSlug, goBack, token, currentUser })
       setError('')
 
       const [constructorRes, statsRes, driversRes, seasonsRes] = await Promise.all([
-        fetch(`http://127.0.0.1:8000/constructors/${constructorSlug}`),
-        fetch(`http://127.0.0.1:8000/constructors/${constructorSlug}/stats`),
-        fetch(`http://127.0.0.1:8000/constructors/${constructorSlug}/drivers`),
-        fetch(`http://127.0.0.1:8000/constructors/${constructorSlug}/seasons`)
+        fetch(`${API_BASE_URL}/constructors/${constructorSlug}`),
+        fetch(`${API_BASE_URL}/constructors/${constructorSlug}/stats`),
+        fetch(`${API_BASE_URL}/constructors/${constructorSlug}/drivers`),
+        fetch(`${API_BASE_URL}/constructors/${constructorSlug}/seasons`)
       ])
 
       const constructorJson = await constructorRes.json()
@@ -69,7 +70,7 @@ function ConstructorDetailsPage({ constructorSlug, goBack, token, currentUser })
 
   const checkFavoriteStatus = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/favorites/', {
+      const response = await fetch(`${API_BASE_URL}/favorites/`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -93,7 +94,7 @@ function ConstructorDetailsPage({ constructorSlug, goBack, token, currentUser })
 
       const method = isFavorite ? 'DELETE' : 'POST'
 
-      const response = await fetch(`http://127.0.0.1:8000/favorites/constructors/${constructorSlug}`, {
+      const response = await fetch(`${API_BASE_URL}/favorites/constructors/${constructorSlug}`, {
         method,
         headers: {
           Authorization: `Bearer ${token}`

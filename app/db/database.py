@@ -1,8 +1,12 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# NOTE: using local Postgres without password
-DATABASE_URL = "postgresql+psycopg2://adambakeer@localhost/f1db"
+# Get database URL from environment variable or use default for development
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+psycopg2://adambakeer@localhost/f1db"
+)
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 

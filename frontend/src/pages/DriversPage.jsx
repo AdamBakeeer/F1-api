@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './DriversPage.css'
 import DriverDetailsPage from './DriverDetailsPage'
 
@@ -49,7 +50,7 @@ function DriversPage({ token, currentUser }) {
       let url = ''
 
       if (view === 'current') {
-        url = 'http://127.0.0.1:8000/drivers/current'
+        url = `${API_BASE_URL}/drivers/current`
       } else if (view === 'all-time') {
         const params = new URLSearchParams()
         params.append('limit', '200')
@@ -57,15 +58,15 @@ function DriversPage({ token, currentUser }) {
         if (search.trim()) params.append('q', search.trim())
         if (nationalityFilter) params.append('nationality', nationalityFilter)
 
-        url = `http://127.0.0.1:8000/drivers?${params.toString()}`
+        url = `${API_BASE_URL}/drivers?${params.toString()}`
       } else if (view === 'standings') {
         const params = new URLSearchParams()
         if (roundFilter) params.append('round', roundFilter)
 
         const queryString = params.toString()
         url = queryString
-          ? `http://127.0.0.1:8000/drivers/standings/${season}?${queryString}`
-          : `http://127.0.0.1:8000/drivers/standings/${season}`
+          ? `${API_BASE_URL}/drivers/standings/${season}?${queryString}`
+          : `${API_BASE_URL}/drivers/standings/${season}`
       }
 
       const response = await fetch(url)

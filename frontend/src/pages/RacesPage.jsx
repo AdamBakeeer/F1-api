@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './RacesPage.css'
 
 function RacesPage() {
@@ -41,7 +42,7 @@ function RacesPage() {
 
   const fetchLatestSeason = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/races/current')
+      const response = await fetch(`${API_BASE_URL}/races/current`)
       const data = await response.json()
 
       if (response.ok && data.season) {
@@ -59,9 +60,9 @@ function RacesPage() {
       setError('')
 
       const [seasonRes, calendarRes, winnersRes] = await Promise.all([
-        fetch(`http://127.0.0.1:8000/races/season/${season}`),
-        fetch(`http://127.0.0.1:8000/races/season/${season}/calendar`),
-        fetch(`http://127.0.0.1:8000/races/season/${season}/winners`)
+        fetch(`${API_BASE_URL}/races/season/${season}`),
+        fetch(`${API_BASE_URL}/races/season/${season}/calendar`),
+        fetch(`${API_BASE_URL}/races/season/${season}/winners`)
       ])
 
       const seasonData = await seasonRes.json()
@@ -93,11 +94,11 @@ function RacesPage() {
       setError('')
 
       const [raceRes, summaryRes, podiumRes, resultsRes, dnfsRes] = await Promise.all([
-        fetch(`http://127.0.0.1:8000/races/${year}/${round}`),
-        fetch(`http://127.0.0.1:8000/races/${year}/${round}/summary`),
-        fetch(`http://127.0.0.1:8000/races/${year}/${round}/podium`),
-        fetch(`http://127.0.0.1:8000/races/${year}/${round}/results`),
-        fetch(`http://127.0.0.1:8000/races/${year}/${round}/dnfs`)
+        fetch(`${API_BASE_URL}/races/${year}/${round}`),
+        fetch(`${API_BASE_URL}/races/${year}/${round}/summary`),
+        fetch(`${API_BASE_URL}/races/${year}/${round}/podium`),
+        fetch(`${API_BASE_URL}/races/${year}/${round}/results`),
+        fetch(`${API_BASE_URL}/races/${year}/${round}/dnfs`)
       ])
 
       const raceData = await raceRes.json()

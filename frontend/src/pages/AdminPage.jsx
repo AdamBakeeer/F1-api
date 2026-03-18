@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './AdminPage.css'
 
 function AdminPage({ token, currentUser, goHome }) {
@@ -89,10 +90,10 @@ function AdminPage({ token, currentUser, goHome }) {
         circuitsRes,
         racesRes
       ] = await Promise.all([
-        fetch('http://127.0.0.1:8000/drivers?limit=200'),
-        fetch('http://127.0.0.1:8000/constructors?limit=200'),
-        fetch('http://127.0.0.1:8000/circuits?limit=200'),
-        fetch('http://127.0.0.1:8000/races?limit=200')
+        fetch(`${API_BASE_URL}/drivers?limit=200`),
+        fetch(`${API_BASE_URL}/constructors?limit=200`),
+        fetch(`${API_BASE_URL}/circuits?limit=200`),
+        fetch(`${API_BASE_URL}/races?limit=200`)
       ])
 
       const driversData = await driversRes.json()
@@ -292,7 +293,7 @@ function AdminPage({ token, currentUser, goHome }) {
       setSubmitting(true)
       resetMessages()
 
-      const response = await fetch('http://127.0.0.1:8000/drivers', {
+      const response = await fetch(`${API_BASE_URL}/drivers`, {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(buildCreateDriverPayload())
@@ -339,7 +340,7 @@ function AdminPage({ token, currentUser, goHome }) {
         throw new Error('Please enter at least one field to update')
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/drivers/${updateDriverSlug.trim()}`, {
+      const response = await fetch(`${API_BASE_URL}/drivers/${updateDriverSlug.trim()}`, {
         method: 'PATCH',
         headers: authHeaders,
         body: JSON.stringify(payload)
@@ -381,7 +382,7 @@ function AdminPage({ token, currentUser, goHome }) {
         throw new Error('Please enter a driver slug to delete')
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/drivers/${deleteDriverSlug.trim()}`, {
+      const response = await fetch(`${API_BASE_URL}/drivers/${deleteDriverSlug.trim()}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -411,7 +412,7 @@ function AdminPage({ token, currentUser, goHome }) {
       setSubmitting(true)
       resetMessages()
 
-      const response = await fetch('http://127.0.0.1:8000/constructors', {
+      const response = await fetch(`${API_BASE_URL}/constructors`, {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(buildCreateConstructorPayload())
@@ -454,7 +455,7 @@ function AdminPage({ token, currentUser, goHome }) {
         throw new Error('Please enter at least one field to update')
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/constructors/${updateConstructorSlug.trim()}`, {
+      const response = await fetch(`${API_BASE_URL}/constructors/${updateConstructorSlug.trim()}`, {
         method: 'PATCH',
         headers: authHeaders,
         body: JSON.stringify(payload)
@@ -492,7 +493,7 @@ function AdminPage({ token, currentUser, goHome }) {
         throw new Error('Please enter a constructor slug to delete')
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/constructors/${deleteConstructorSlug.trim()}`, {
+      const response = await fetch(`${API_BASE_URL}/constructors/${deleteConstructorSlug.trim()}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -522,7 +523,7 @@ function AdminPage({ token, currentUser, goHome }) {
       setSubmitting(true)
       resetMessages()
 
-      const response = await fetch('http://127.0.0.1:8000/circuits', {
+      const response = await fetch(`${API_BASE_URL}/circuits`, {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify(buildCreateCircuitPayload())
@@ -568,7 +569,7 @@ function AdminPage({ token, currentUser, goHome }) {
         throw new Error('Please enter at least one field to update')
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/circuits/${updateCircuitSlug.trim()}`, {
+      const response = await fetch(`${API_BASE_URL}/circuits/${updateCircuitSlug.trim()}`, {
         method: 'PATCH',
         headers: authHeaders,
         body: JSON.stringify(payload)
@@ -609,7 +610,7 @@ function AdminPage({ token, currentUser, goHome }) {
         throw new Error('Please enter a circuit slug to delete')
       }
 
-      const response = await fetch(`http://127.0.0.1:8000/circuits/${deleteCircuitSlug.trim()}`, {
+      const response = await fetch(`${API_BASE_URL}/circuits/${deleteCircuitSlug.trim()}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`

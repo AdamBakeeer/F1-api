@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './UserPage.css'
 
 function UserPage({ currentUser, token, onUserUpdate, onLogout, goHome }) {
@@ -32,7 +33,7 @@ function UserPage({ currentUser, token, onUserUpdate, onLogout, goHome }) {
       setFavoritesLoading(true)
       setFavoritesError('')
 
-      const response = await fetch('http://127.0.0.1:8000/favorites/', {
+      const response = await fetch(`${API_BASE_URL}/favorites/`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -60,7 +61,7 @@ function UserPage({ currentUser, token, onUserUpdate, onLogout, goHome }) {
     try {
       setFavoritesError('')
 
-      const response = await fetch(`http://127.0.0.1:8000/favorites/${type}/${slug}`, {
+      const response = await fetch(`${API_BASE_URL}/favorites/${type}/${slug}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -99,7 +100,7 @@ function UserPage({ currentUser, token, onUserUpdate, onLogout, goHome }) {
       if (formData.email.trim()) payload.email = formData.email.trim()
       if (formData.password.trim()) payload.password = formData.password.trim()
 
-      const response = await fetch('http://127.0.0.1:8000/auth/me', {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +142,7 @@ function UserPage({ currentUser, token, onUserUpdate, onLogout, goHome }) {
       setError('')
       setMessage('')
 
-      const response = await fetch('http://127.0.0.1:8000/auth/me', {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { API_BASE_URL } from '../config.js'
 import './RaceDetailsPage.css'
 
 function RaceDetailsPage({ year, round, goBack }) {
@@ -23,11 +24,11 @@ function RaceDetailsPage({ year, round, goBack }) {
       setError('')
 
       const [raceRes, summaryRes, podiumRes, resultsRes, dnfsRes] = await Promise.all([
-        fetch(`http://127.0.0.1:8000/races/${year}/${round}`),
-        fetch(`http://127.0.0.1:8000/races/${year}/${round}/summary`),
-        fetch(`http://127.0.0.1:8000/races/${year}/${round}/podium`),
-        fetch(`http://127.0.0.1:8000/races/${year}/${round}/results`),
-        fetch(`http://127.0.0.1:8000/races/${year}/${round}/dnfs`)
+        fetch(`${API_BASE_URL}/races/${year}/${round}`),
+        fetch(`${API_BASE_URL}/races/${year}/${round}/summary`),
+        fetch(`${API_BASE_URL}/races/${year}/${round}/podium`),
+        fetch(`${API_BASE_URL}/races/${year}/${round}/results`),
+        fetch(`${API_BASE_URL}/races/${year}/${round}/dnfs`)
       ])
 
       const raceData = await raceRes.json()
