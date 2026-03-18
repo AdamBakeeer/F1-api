@@ -20,10 +20,11 @@ except Exception as e:
     pass
 
 # Configure CORS based on environment
+default_origins = "http://localhost:5173,http://127.0.0.1:5173,https://selfless-upliftment-production-d30b.up.railway.app"
 allowed_origins = [
     origin.strip() for origin in os.getenv(
         "ALLOWED_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173"
+        default_origins
     ).split(",")
 ]
 

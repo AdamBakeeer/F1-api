@@ -12,7 +12,10 @@ if not DATABASE_URL:
     print("⚠️ Using LOCAL PostgreSQL database")
     use_null_pool = False
 else:
-    print("✓ Using RENDER PostgreSQL database")
+    print("✓ Using RAILWAY PostgreSQL database")
+    # Fix SSL/connection issues with Railway PostgreSQL
+    if "sslmode" not in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL + "?sslmode=require"
     use_null_pool = True  # important for cloud
 
 # Engine configuration
