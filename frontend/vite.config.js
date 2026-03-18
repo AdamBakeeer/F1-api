@@ -6,5 +6,11 @@ export default defineConfig({
   plugins: [react()],
   define: {
     'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'http://127.0.0.1:8000')
+  },
+  server: {
+    allowedHosts: ['.railway.app', 'localhost', '127.0.0.1']
+  },
+  preview: {
+    allowedHosts: ['.railway.app', 'localhost', '127.0.0.1']
   }
 })
