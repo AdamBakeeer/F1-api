@@ -1,4 +1,5 @@
 import os
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,9 +7,17 @@ from app.api import drivers, constructors, circuits, races, analytics, auth, fav
 from app.db.database import Base, engine
 from app.models import models
 
+logger = logging.getLogger(__name__)
 app = FastAPI(title="F1 API")
 
-Base.metadata.create_all(bind=engine)
+# Initialize database schema
+try:
+    Base.metadata.create_all(bind=engine)
+    logger.info("✓ Database schema initialized")
+except Exception as e:
+    logger.warning(f"⚠️  Could not initialize database schema: {e}")
+    logger.info("Database will be initialized on first request")
+    pass
 
 # Configure CORS based on environment
 allowed_origins = os.getenv(
