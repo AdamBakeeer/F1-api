@@ -39,8 +39,8 @@ The system follows a layered architecture to ensure separation of concerns and m
 
 ### Backend
 - Python (FastAPI)
-- SQLite
-- JWT Authentication (python-jose, passlib)
+- PostgreSQL
+- JWT Authentication
 
 ### Frontend
 - React (Vite)
@@ -163,7 +163,7 @@ The technical report is provided in:
 
 ## 🚀 Deployment
 
-The backend API is deployed using Railway, making it accessible via a public URL.
+The backend API is deployed using Render, making it accessible via a public URL.
 
 This allows real-world interaction with the API, including authentication, data retrieval, and admin operations, beyond a local development environment.
 
