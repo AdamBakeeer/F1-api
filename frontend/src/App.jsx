@@ -8,6 +8,7 @@ import AnalyticsPage from './pages/AnalyticsPage'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import UserPage from './pages/UserPage'
+import AdminPage from './pages/AdminPage'
 
 function App() {
   const [drivers, setDrivers] = useState([])
@@ -53,7 +54,12 @@ function App() {
   const handleLoginSuccess = ({ token, user }) => {
     setToken(token)
     setCurrentUser(user)
-    setPage(user.role === 'admin' ? 'home' : 'user')
+
+    if (user.role === 'admin') {
+      setPage('admin')
+    } else {
+      setPage('user')
+    }
   }
 
   const handleLogout = () => {
@@ -99,7 +105,7 @@ function App() {
 
           {isLoggedIn && isAdmin && (
             <>
-              <button>Admin Mode</button>
+              <button onClick={() => setPage('admin')}>Admin</button>
               <button className="login-btn" onClick={handleLogout}>
                 Logout
               </button>
@@ -148,18 +154,21 @@ function App() {
           currentUser={currentUser}
         />
       )}
+
       {page === 'constructors' && (
         <ConstructorsPage
           token={token}
           currentUser={currentUser}
         />
       )}
+
       {page === 'circuits' && (
         <CircuitsPage
           token={token}
           currentUser={currentUser}
         />
       )}
+
       {page === 'races' && <RacesPage />}
       {page === 'analytics' && <AnalyticsPage />}
 
@@ -185,6 +194,14 @@ function App() {
           token={token}
           onUserUpdate={setCurrentUser}
           onLogout={handleLogout}
+          goHome={() => setPage('home')}
+        />
+      )}
+
+      {page === 'admin' && (
+        <AdminPage
+          token={token}
+          currentUser={currentUser}
           goHome={() => setPage('home')}
         />
       )}

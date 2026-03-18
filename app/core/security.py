@@ -4,23 +4,14 @@ from typing import Any
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-# ---------------------------------------------------------
-# Security configuration
-# ---------------------------------------------------------
 SECRET_KEY = "change-this-to-a-long-random-secret-key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-# ---------------------------------------------------------
-# Password hashing
-# ---------------------------------------------------------
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# ---------------------------------------------------------
-# Demo admin account
-# ---------------------------------------------------------
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD_HASH = "$2b$12$/uoMS7a73wcSdXaGE5JWAONbCSZvTsSEFZNoYRAULsMU/bnIBca/W"
+ADMIN_USERNAME = "admin@gmail.com"
+ADMIN_PASSWORD = "admin1234"
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -32,13 +23,10 @@ def get_password_hash(password: str) -> str:
 
 
 def authenticate_admin(username: str, password: str) -> dict[str, Any] | None:
-    """
-    Authenticate the single admin user.
-    """
-    if username != ADMIN_USERNAME:
+    if username.strip() != ADMIN_USERNAME:
         return None
 
-    if not verify_password(password, ADMIN_PASSWORD_HASH):
+    if password != ADMIN_PASSWORD:
         return None
 
     return {
@@ -51,22 +39,15 @@ def create_access_token(
     data: dict[str, Any],
     expires_delta: timedelta | None = None
 ) -> str:
-    """
-    Create a signed JWT access token.
-    """
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (
         expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     )
-
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
-    """
-    Decode and validate a JWT token.
-    """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload

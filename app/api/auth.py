@@ -187,8 +187,7 @@ def admin_login(payload: UserLogin):
         "token_type": "bearer",
         "role": "admin",
     }
-
-
+    
 @router.get("/me", response_model=UserOut)
 def read_me(current_user: dict = Depends(get_current_user)):
     if current_user.get("role") == "admin":
