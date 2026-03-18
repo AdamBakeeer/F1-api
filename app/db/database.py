@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.pool import NullPool
 
@@ -7,23 +7,24 @@ from sqlalchemy.pool import NullPool
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    # Development fallback
+    # Local development fallback (your existing setup)
     DATABASE_URL = "postgresql+psycopg2://adambakeer@localhost/f1db"
-    print("⚠️  DATABASE_URL not set - using local PostgreSQL")
+    print("⚠️ Using LOCAL PostgreSQL database")
+    use_null_pool = False
 else:
-    print(f"✓ Using Railway PostgreSQL database")
+    print("✓ Using RENDER PostgreSQL database")
+    use_null_pool = True  # important for cloud
 
-# Railway-optimized connection settings
+# Engine configuration
 engine_kwargs = {
-    "pool_pre_ping": True,  # Verify connection before using
-    "pool_recycle": 3600,  # Recycle connections every hour
+    "pool_pre_ping": True,
+    "pool_recycle": 3600,
 }
 
-# Use NullPool on Railway (connection pooling handled by environment)
-if os.getenv("RAILWAY_ENVIRONMENT_NAME"):
+# On Render → disable pooling (VERY IMPORTANT)
+if use_null_pool:
     engine_kwargs["poolclass"] = NullPool
 else:
-    # Local development: use normal pool
     engine_kwargs["pool_size"] = 10
     engine_kwargs["max_overflow"] = 20
 
@@ -39,10 +40,6 @@ Base = declarative_base()
 
 
 def get_db():
-    """
-    Dependency that provides a DB session per request.
-    FastAPI will call this automatically when used with Depends(get_db).
-    """
     db = SessionLocal()
     try:
         yield db
