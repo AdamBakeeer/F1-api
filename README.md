@@ -2,23 +2,22 @@
 
 ## 📌 Project Overview
 
-This project is a full-stack data-driven web application that provides a RESTful API for Formula 1 data, alongside an interactive frontend dashboard.
+This project is a full-stack web application that provides a RESTful API for Formula 1 data, alongside an interactive frontend dashboard.
 
-The system allows users to explore F1 data including drivers, constructors, circuits, and races, while also supporting advanced features such as authentication, favourites, and admin-controlled data management.
+The system allows users to explore F1 data including drivers, constructors, circuits, and races. It also includes authentication and admin-controlled data management, enabling secure creation, updating, and deletion of data.
 
-The API is designed following REST principles and supports full CRUD operations for key entities, as well as analytical endpoints for data insights.
+The API follows RESTful design principles and supports CRUD operations for core entities, as well as analytical endpoints to provide additional insights.
 
 ---
 
 ## 🚀 Key Features
 
-- RESTful API with full CRUD functionality
-- JWT-based authentication (user & admin roles)
-- User favourites system
-- Admin dashboard with protected endpoints
-- Analytical endpoints (driver performance, rankings)
-- FastAPI backend with automatic validation
-- React frontend for interactive user experience
+- RESTful API with CRUD operations for drivers, constructors, and circuits
+- JWT-based authentication for secure admin access
+- Protected admin endpoints for data management
+- Analytical endpoints (e.g. top drivers, constructor performance)
+- FastAPI backend with automatic validation and Swagger documentation
+- React frontend for interactive data exploration
 
 ---
 
@@ -28,11 +27,11 @@ Frontend (React)
 ↓  
 FastAPI Backend (API Layer)  
 ↓  
-Authentication Layer (JWT)  
+JWT Authentication  
 ↓  
-Database (SQL)
+SQLite Database  
 
-This architecture ensures separation of concerns, scalability, and maintainability.
+The system follows a layered architecture to ensure separation of concerns and maintainability.
 
 ---
 
@@ -40,8 +39,8 @@ This architecture ensures separation of concerns, scalability, and maintainabili
 
 ### Backend
 - Python (FastAPI)
-- SQL Database (SQLite / PostgreSQL)
-- JWT Authentication
+- SQLite
+- JWT Authentication (python-jose, passlib)
 
 ### Frontend
 - React (Vite)
@@ -49,8 +48,7 @@ This architecture ensures separation of concerns, scalability, and maintainabili
 
 ### Tools
 - Git & GitHub (version control)
-- Swagger UI (API testing)
-- Postman (optional)
+- Swagger UI (API documentation and testing)
 
 ---
 
@@ -65,11 +63,9 @@ cd F1-api
 
 ### 2. Backend Setup
 
-cd backend   (or root folder if backend is there)
-
 python -m venv .venv  
-source .venv/bin/activate   (Mac/Linux)  
-.venv\Scripts\activate      (Windows)  
+source .venv/bin/activate      # Mac/Linux  
+.venv\Scripts\activate         # Windows  
 
 pip install -r requirements.txt  
 
@@ -79,10 +75,10 @@ pip install -r requirements.txt
 
 uvicorn app.main:app --reload  
 
-Backend will run at:  
+Backend runs at:  
 http://127.0.0.1:8000  
 
-Swagger docs:  
+Swagger documentation:  
 http://127.0.0.1:8000/docs  
 
 ---
@@ -93,7 +89,7 @@ cd frontend
 npm install  
 npm run dev  
 
-Frontend will run at:  
+Frontend runs at:  
 http://localhost:5173  
 
 ---
@@ -102,38 +98,39 @@ http://localhost:5173
 
 The system uses JWT-based authentication.
 
-### User
-- Register and login via `/auth/login`
+### Admin Login  
+POST /auth/admin/login  
 
-### Admin
-- Endpoint: `/auth/admin/login`
-- Admin can:
-  - Create, update, delete data
-  - Access protected endpoints
+Authenticated admin users can:  
+- Create data  
+- Update data  
+- Delete data  
+
+All protected endpoints require a valid Bearer token.
 
 ---
 
 ## 📡 API Endpoints (Examples)
 
-### Drivers
+### Drivers  
 GET /drivers  
 GET /drivers/{slug}  
 POST /drivers (admin)  
 PATCH /drivers/{slug} (admin)  
 DELETE /drivers/{slug} (admin)  
 
-### Constructors
+### Constructors  
 GET /constructors  
 POST /constructors (admin)  
 
-### Circuits
+### Circuits  
 GET /circuits  
 POST /circuits (admin)  
 
-### Races
+### Races  
 GET /races  
 
-### Analytics
+### Analytics  
 GET /analytics/top-drivers  
 GET /analytics/constructor-performance  
 
@@ -141,16 +138,16 @@ GET /analytics/constructor-performance
 
 ## 🧪 Testing
 
-The API was tested using:
-- Swagger UI (FastAPI built-in)
-- Manual testing via frontend
-- Validation of edge cases (invalid input, unauthorized access)
+The API was tested using:  
+- Swagger UI (interactive endpoint testing)  
+- Manual testing through the frontend interface  
+- Validation of edge cases (invalid input, authentication errors)  
 
 ---
 
 ## 📄 API Documentation
 
-Full API documentation is available in:
+Full API documentation is provided in:  
 
 /docs/API_Documentation.pdf  
 
@@ -158,29 +155,26 @@ Full API documentation is available in:
 
 ## 📘 Technical Report
 
-The technical report is included in:
+The technical report is provided in:  
 
 /docs/Technical_Report.pdf  
 
 ---
 
-## 🤖 Generative AI Usage
+## 🚀 Deployment
 
-Generative AI tools were used for:
-- Debugging and troubleshooting
-- Exploring architecture and design decisions
-- Improving documentation and structure
+The backend API is deployed using Railway, making it accessible via a public URL.
 
-All outputs were critically evaluated and adapted before use.
+This allows real-world interaction with the API, including authentication, data retrieval, and admin operations, beyond a local development environment.
 
 ---
 
 ## 🔮 Future Improvements
 
-- Cloud deployment (Render / Railway)
-- More advanced analytics
-- Real-time data integration
-- Improved admin features
+- Performance optimisation (e.g. caching)  
+- More advanced analytical endpoints  
+- Enhanced frontend user experience  
+- Expanded role-based access control  
 
 ---
 
